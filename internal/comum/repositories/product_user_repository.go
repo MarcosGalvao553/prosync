@@ -24,6 +24,7 @@ func (r *ProductUserRepository) ListarPorProductID(productID int) ([]models.Prod
 		       price, created_at, updated_at
 		FROM product_users 
 		WHERE product_id = ?
+		AND user_id in(739,34)
 	`
 
 	rows, err := r.db.Query(query, productID)
