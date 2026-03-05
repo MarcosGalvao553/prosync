@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  prosync:
+    container_name: prosync
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8080"
+    env_file:
+      - .env
+    volumes:
+      - ./:/usr/src/app
+      - ./logs:/app/logs

@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProSync - Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            color: #333;
+            margin-bottom: 5px;
+            font-size: 32px;
+        }
+
+        .header .subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .filters {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .filters h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-group label {
+            color: #666;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .filter-group select:focus,
+        .filter-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .autocomplete-container {
+            position: relative;
+        }
+
+        .autocomplete-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #667eea;
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        }
+
+        .autocomplete-results.show {
+            display: block;
+        }
+
+        .autocomplete-item {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .autocomplete-item:hover {
+            background: #f8f9fa;
+        }
+
+        .autocomplete-item .name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .autocomplete-item .email {
+            font-size: 12px;
+            color: #999;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 12px rgba(0,0,0,0.15);
+        }
+
+        .stat-card h3 {
+            color: #666;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .stat-card .value {
+            color: #333;
+            font-size: 36px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .stat-card .unit {
+            color: #999;
+            font-size: 14px;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .chart-container h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 18px;
+        }
+
+        .chart-wrapper {
+            position: relative;
+            height: 350px;
+        }
+
+        .log-list {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .log-list-header {
+            padding: 20px 25px;
+            background: #f8f9fa;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .log-list-header h2 {
+            color: #333;
+            font-size: 18px;
+        }
+
+        .log-item {
+            padding: 20px 25px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .log-item:hover {
+            background: #f8f9fa;
+        }
+
+        .log-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .log-operation {
+            font-weight: 600;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .log-time {
+            color: #999;
+            font-size: 14px;
+        }
+
+        .log-meta {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .log-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .badge-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .log-details {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .log-details.show {
+            display: block;
+        }
+
+        .detail-section {
+            margin-bottom: 15px;
+        }
+
+        .detail-section h4 {
+            color: #666;
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+        }
+
+        .detail-content {
+            background: white;
+            padding: 12px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: white;
+            font-size: 18px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 ProSync</h1>
+            <p class="subtitle">Monitoramento de sincronização de produtos</p>
+        </div>
+
+        <div class="filters">
+            <h2>🔍 Filtros</h2>
+            <div class="filter-grid">
+                <div class="filter-group">
+                    <label>Serviço</label>
+                    <select id="filterServico">
+                        <option value="">Todos</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Operação</label>
+                    <select id="filterOperacao">
+                        <option value="">Todas</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>Status</label>
+                    <select id="filterStatus">
+                        <option value="">Todos</option>
+                        <option value="OK">OK</option>
+                        <option value="Erro">Erro</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label>ID do Produto</label>
+                    <input type="text" id="filterProduto" placeholder="Digite o ID...">
+                </div>
+                <div class="filter-group">
+                    <label>SKU</label>
+                    <input type="text" id="filterSKU" placeholder="Digite o SKU...">
+                </div>
+                <div class="filter-group">
+                    <label>Usuário</label>
+                    <div class="autocomplete-container">
+                        <input type="text" id="filterUser" placeholder="Digite o nome do usuário..." autocomplete="off">
+                        <input type="hidden" id="filterUserID">
+                        <div class="autocomplete-results" id="userAutocomplete"></div>
+                    </div>
+                </div>
+                <div class="filter-group">
+                    <label>Data Início</label>
+                    <input type="datetime-local" id="filterDataInicio">
+                </div>
+                <div class="filter-group">
+                    <label>Data Fim</label>
+                    <input type="datetime-local" id="filterDataFim">
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button class="btn btn-primary" onclick="aplicarFiltros()">Aplicar Filtros</button>
+                <button class="btn btn-secondary" onclick="limparFiltros()">Limpar</button>
+                <button class="btn btn-secondary" onclick="carregarDados()" style="margin-left: auto;">🔄 Atualizar</button>
+            </div>
+        </div>
+
+        <div id="stats" class="stats-grid">
+            <div class="stat-card">
+                <h3>Total Requisições</h3>
+                <div class="value" id="totalReqs">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Sucesso</h3>
+                <div class="value" style="color: #28a745;" id="successReqs">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Erros</h3>
+                <div class="value" style="color: #dc3545;" id="errorReqs">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Tempo Médio</h3>
+                <div class="value" id="avgTime">0</div>
+                <div class="unit">ms</div>
+            </div>
+            <div class="stat-card">
+                <h3>Taxa de Sucesso</h3>
+                <div class="value" style="color: #667eea;" id="successRate">0</div>
+                <div class="unit">%</div>
+            </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+            <div class="chart-container">
+                <h2>📈 Distribuição de Status</h2>
+                <div class="chart-wrapper">
+                    <canvas id="statusChart"></canvas>
+                </div>
+            </div>
+            <div class="chart-container">
+                <h2>⏱️ Tempo por Operação</h2>
+                <div class="chart-wrapper">
+                    <canvas id="timeChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="log-list">
+            <div class="log-list-header">
+                <h2>📝 Logs de Requisições</h2>
+            </div>
+            <div id="logsList"></div>
+            <div style="padding: 20px; text-align: center; border-top: 1px solid #e0e0e0;">
+                <button class="btn btn-secondary" id="btnPrevPage" onclick="mudarPagina(-1)" disabled>← Anterior</button>
+                <span style="margin: 0 20px; color: #666;">Página <span id="currentPage">1</span></span>
+                <button class="btn btn-secondary" id="btnNextPage" onclick="mudarPagina(1)">Próximo →</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let charts = {};
+        let logsData = [];
+        let paginaAtual = 1;
+        const itensPorPagina = 50;
+
+        // Constrói URL com filtros
+        function construirURLFiltros() {
+            const servico = document.getElementById('filterServico').value;
+            const operacao = document.getElementById('filterOperacao').value;
+            const status = document.getElementById('filterStatus').value;
+            const produto = document.getElementById('filterProduto').value;
+            const sku = document.getElementById('filterSKU').value;
+            const userID = document.getElementById('filterUserID').value;
+            const dataInicio = document.getElementById('filterDataInicio').value;
+            const dataFim = document.getElementById('filterDataFim').value;
+
+            let params = [];
+            if (servico) params.push(`servico=${servico}`);
+            if (operacao) params.push(`operacao=${operacao}`);
+            if (status) params.push(`status=${status}`);
+            if (produto) params.push(`produto=${produto}`);
+            if (sku) params.push(`sku=${sku}`);
+            if (userID) params.push(`user_id=${userID}`);
+            if (dataInicio) params.push(`data_inicio=${dataInicio}`);
+            if (dataFim) params.push(`data_fim=${dataFim}`);
+            
+            return params.length > 0 ? '?' + params.join('&') : '';
+        }
+
+        // Carrega dados com filtros
+        async function carregarDados() {
+            const filtros = construirURLFiltros();
+
+            try {
+                // Carrega estatísticas (sem limite)
+                const statsResponse = await fetch('/api/logs/estatisticas' + filtros);
+                const stats = await statsResponse.json();
+                atualizarEstatisticas(stats);
+
+                // Carrega tempo por operação (sem limite)
+                const timeResponse = await fetch('/api/logs/tempo-por-operacao' + filtros);
+                const timeData = await timeResponse.json();
+                atualizarGraficos(stats, timeData);
+
+                // Carrega logs para listagem (com limite)
+                const logsResponse = await fetch('/api/logs' + filtros);
+                logsData = await logsResponse.json();
+                
+                renderizarLogs(logsData);
+                atualizarFiltrosDinamicos(logsData);
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+            }
+        }
+
+        function aplicarFiltros() {
+            paginaAtual = 1;
+            carregarDados();
+        }
+
+        function limparFiltros() {
+            document.getElementById('filterServico').value = '';
+            document.getElementById('filterOperacao').value = '';
+            document.getElementById('filterStatus').value = '';
+            document.getElementById('filterProduto').value = '';
+            document.getElementById('filterSKU').value = '';
+            document.getElementById('filterUser').value = '';
+            document.getElementById('filterUserID').value = '';
+            // Mantém as datas do dia atual
+            inicializarDatas();
+            paginaAtual = 1;
+            carregarDados();
+        }
+
+        function mudarPagina(direcao) {
+            paginaAtual += direcao;
+            renderizarLogs(logsData);
+        }
+
+        function atualizarFiltrosDinamicos(logs) {
+            // Busca todas as operações e serviços únicos de todos os logs carregados
+            // (não apenas os filtrados, para manter todas as opções disponíveis)
+            const selectServico = document.getElementById('filterServico');
+            const selectOperacao = document.getElementById('filterOperacao');
+            
+            // Mantém os valores atuais selecionados
+            const servicoAtual = selectServico.value;
+            const operacaoAtual = selectOperacao.value;
+            
+            // Não atualiza os selects se eles já tem opções (evita perder opções ao filtrar)
+            if (selectServico.options.length <= 1) {
+                const servicos = [...new Set(logs.map(l => l.servico))];
+                selectServico.innerHTML = '<option value="">Todos</option>' + 
+                    servicos.map(s => `<option value="${s}" ${s === servicoAtual ? 'selected' : ''}>${s}</option>`).join('');
+            }
+            
+            if (selectOperacao.options.length <= 1) {
+                const operacoes = [...new Set(logs.map(l => l.operacao))];
+                selectOperacao.innerHTML = '<option value="">Todas</option>' + 
+                    operacoes.map(o => `<option value="${o}" ${o === operacaoAtual ? 'selected' : ''}>${o}</option>`).join('');
+            }
+        }
+
+        function atualizarEstatisticas(stats) {
+            document.getElementById('totalReqs').textContent = stats.total || 0;
+            document.getElementById('successReqs').textContent = stats.sucesso || 0;
+            document.getElementById('errorReqs').textContent = stats.erros || 0;
+            document.getElementById('avgTime').textContent = Math.round(stats.tempo_medio || 0);
+            document.getElementById('successRate').textContent = (stats.taxa_sucesso || 0).toFixed(1);
+        }
+
+        function atualizarGraficos(stats, timeData) {
+            // Gráfico de status
+            const ctx1 = document.getElementById('statusChart');
+            const sucesso = stats.sucesso || 0;
+            const erros = stats.erros || 0;
+
+            if (charts.status) charts.status.destroy();
+            charts.status = new Chart(ctx1, {
+                type: 'doughnut',
+                data: {
+                    labels: ['OK', 'Erro'],
+                    datasets: [{
+                        data: [sucesso, erros],
+                        backgroundColor: ['#28a745', '#dc3545']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: 'bottom' } }
+                }
+            });
+
+            // Gráfico de tempo
+            const ctx2 = document.getElementById('timeChart');
+
+            if (charts.time) charts.time.destroy();
+            charts.time = new Chart(ctx2, {
+                type: 'bar',
+                data: {
+                    labels: timeData.map(t => t.operacao),
+                    datasets: [{
+                        label: 'Tempo Médio (ms)',
+                        data: timeData.map(t => t.media),
+                        backgroundColor: '#667eea'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
+
+        function renderizarLogs(logs) {
+            const container = document.getElementById('logsList');
+            
+            if (logs.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📭</div>
+                        <h3>Nenhum log encontrado</h3>
+                        <p>Tente ajustar os filtros</p>
+                    </div>
+                `;
+                document.getElementById('btnPrevPage').disabled = true;
+                document.getElementById('btnNextPage').disabled = true;
+                return;
+            }
+
+            // Paginação
+            const totalPaginas = Math.ceil(logs.length / itensPorPagina);
+            const inicio = (paginaAtual - 1) * itensPorPagina;
+            const fim = inicio + itensPorPagina;
+            const logsPagina = logs.slice(inicio, fim);
+            
+            container.innerHTML = logsPagina.map((log, index) => {
+                const timestamp = new Date(log.timestamp).toLocaleString('pt-BR');
+                const status = log.status || 'N/A';
+                const badgeClass = status === 'OK' ? 'badge-success' : 'badge-error';
+                const duration = Math.round(parseDuration(log.duracao));
+
+                return `
+                    <div class="log-item" onclick="toggleDetails(${index})">
+                        <div class="log-item-header">
+                            <div class="log-operation">${log.operacao}</div>
+                            <div class="log-time">${timestamp}</div>
+                        </div>
+                        <div class="log-meta">
+                            <span class="log-badge ${badgeClass}">${status}</span>
+                            <span class="log-badge badge-info">${duration}ms</span>
+                            <span class="log-badge badge-info">${log.servico}</span>
+                            ${log.produto_tiny_id ? `<span class="log-badge badge-info">ID: ${log.produto_tiny_id}</span>` : ''}
+                            ${log.sku ? `<span class="log-badge badge-info">SKU: ${log.sku}</span>` : ''}
+                        </div>
+                        <div class="log-details" id="details-${index}" onclick="event.stopPropagation()">
+                            ${renderDetalhes(log)}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Atualiza botões de paginação
+            document.getElementById('currentPage').textContent = paginaAtual;
+            document.getElementById('btnPrevPage').disabled = paginaAtual <= 1;
+            document.getElementById('btnNextPage').disabled = paginaAtual >= totalPaginas || logs.length < itensPorPagina;
+        }
+
+        function renderDetalhes(log) {
+            let html = '';
+
+            if (log.requisicao) {
+                html += `
+                    <div class="detail-section">
+                        <h4>Requisição</h4>
+                        <div class="detail-content">${JSON.stringify(log.requisicao, null, 2)}</div>
+                    </div>
+                `;
+            }
+
+            if (log.resposta) {
+                html += `
+                    <div class="detail-section">
+                        <h4>Resposta</h4>
+                        <div class="detail-content">${JSON.stringify(log.resposta, null, 2)}</div>
+                    </div>
+                `;
+            }
+
+            if (log.url) {
+                html += `
+                    <div class="detail-section">
+                        <h4>URL</h4>
+                        <div class="detail-content">${log.metodo_http} ${log.url}</div>
+                    </div>
+                `;
+            }
+
+            if (log.erro) {
+                html += `
+                    <div class="detail-section">
+                        <h4>Erro</h4>
+                        <div class="detail-content" style="color: #dc3545;">${log.erro}</div>
+                    </div>
+                `;
+            }
+
+            return html;
+        }
+
+        function toggleDetails(index) {
+            event.stopPropagation(); // Previne que o clique propague para elementos pai
+            const details = document.getElementById(`details-${index}`);
+            details.classList.toggle('show');
+        }
+
+        function parseDuration(duration) {
+            if (!duration) return 0;
+            const match = duration.match(/([0-9.]+)(m?s)/);
+            if (!match) return 0;
+            const value = parseFloat(match[1]);
+            const unit = match[2];
+            if (unit === 's') return value * 1000;
+            if (unit === 'ms') return value;
+            return 0;
+        }
+
+        function formatBytes(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        // Define datas do dia atual ao carregar a página
+        function inicializarDatas() {
+            const hoje = new Date();
+            const ano = hoje.getFullYear();
+            const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+            const dia = String(hoje.getDate()).padStart(2, '0');
+            
+            // Define início como hoje às 00:00
+            document.getElementById('filterDataInicio').value = `${ano}-${mes}-${dia}T00:00`;
+            
+            // Define fim como hoje às 23:59
+            document.getElementById('filterDataFim').value = `${ano}-${mes}-${dia}T23:59`;
+        }
+
+        // Define horários padrão para os campos de data quando alterados
+        document.getElementById('filterDataInicio').addEventListener('change', function(e) {
+            if (this.value && !this.value.includes('T')) {
+                this.value = this.value + 'T00:00';
+            } else if (this.value && this.value.length === 16) {
+                // Se o usuário não especificou minutos, use 00:00
+                const parts = this.value.split('T');
+                if (parts[1] === '') {
+                    this.value = parts[0] + 'T00:00';
+                }
+            }
+        });
+
+        document.getElementById('filterDataFim').addEventListener('change', function(e) {
+            if (this.value && !this.value.includes('T')) {
+                this.value = this.value + 'T23:59';
+            } else if (this.value && this.value.length === 16) {
+                // Se o usuário não especificou minutos, use 23:59
+                const parts = this.value.split('T');
+                if (parts[1] === '') {
+                    this.value = parts[0] + 'T23:59';
+                }
+            }
+        });
+
+        // ===== AUTOCOMPLETE DE USUÁRIOS =====
+        let timeoutBusca = null;
+        const inputUser = document.getElementById('filterUser');
+        const autocompleteBox = document.getElementById('userAutocomplete');
+        const inputUserID = document.getElementById('filterUserID');
+
+        inputUser.addEventListener('input', function(e) {
+            const termo = this.value.trim();
+            
+            // Limpa o user_id quando o campo é modificado
+            inputUserID.value = '';
+            
+            // Cancela timeout anterior
+            if (timeoutBusca) clearTimeout(timeoutBusca);
+            
+            // Se o campo estiver vazio, esconde o autocomplete
+            if (termo.length < 2) {
+                autocompleteBox.classList.remove('show');
+                return;
+            }
+            
+            // Aguarda 300ms antes de fazer a busca
+            timeoutBusca = setTimeout(async () => {
+                try {
+                    const response = await fetch(`/api/users?q=${encodeURIComponent(termo)}`);
+                    const usuarios = await response.json();
+                    
+                    if (usuarios.length === 0) {
+                        autocompleteBox.innerHTML = '<div class="autocomplete-item">Nenhum usuário encontrado</div>';
+                        autocompleteBox.classList.add('show');
+                        return;
+                    }
+                    
+                    autocompleteBox.innerHTML = usuarios.map(u => `
+                        <div class="autocomplete-item" onclick="selecionarUsuario(${u.id}, '${u.name.replace(/'/g, "\\'")}')">
+                            <div class="name">${u.name}</div>
+                            <div class="email">${u.email}</div>
+                        </div>
+                    `).join('');
+                    
+                    autocompleteBox.classList.add('show');
+                } catch (error) {
+                    console.error('Erro ao buscar usuários:', error);
+                }
+            }, 300);
+        });
+
+        // Fecha o autocomplete quando clicar fora
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.autocomplete-container')) {
+                autocompleteBox.classList.remove('show');
+            }
+        });
+
+        function selecionarUsuario(id, nome) {
+            inputUser.value = nome;
+            inputUserID.value = id;
+            autocompleteBox.classList.remove('show');
+        }
+
+        // Inicializa datas e carrega dados do dia atual
+        inicializarDatas();
+        carregarDados();
+    </script>
+</body>
+</html>

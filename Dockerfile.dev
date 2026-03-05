@@ -1,0 +1,23 @@
+# Dockerfile para Desenvolvimento
+# Use este arquivo para desenvolvimento local com hot reload
+
+FROM golang:1.23-alpine3.19
+
+WORKDIR /usr/src/app
+
+# Instalar dependências
+RUN apk add ghostscript
+
+# Instalar air para hot reload
+RUN go install github.com/air-verse/air@latest
+
+# Copiar arquivos
+COPY ./ .
+
+# Download das dependências
+RUN go mod tidy
+
+EXPOSE 8000
+
+# Usar air para hot reload em desenvolvimento
+CMD ["air", "./cmd/main.go", "-b", "0.0.0.0"]

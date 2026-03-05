@@ -1,0 +1,89 @@
+curl --location 'https://api.tiny.com.br/api2/produto.obter.php' \
+--form 'token="ae30d99abfd42cee1757bbe828ebab7cf19b5717873890fd59f6a114a3c17bb5"' \
+--form 'id="967641344"' \
+--form 'formato="json"'
+
+resposta OK
+
+{
+    "retorno": {
+        "status_processamento": "3",
+        "status": "OK",
+        "produto": {
+            "id": "967641344",
+            "nome": "Funko Pop Jujutsu Kaisen Yuji Itadori 1111",
+            "codigo": "11026",
+            "unidade": "un",
+            "preco": 88.8,
+            "preco_promocional": 0,
+            "ncm": "3926.40.00",
+            "origem": "1",
+            "gtin": "7900126110269",
+            "gtin_embalagem": "",
+            "localizacao": "",
+            "peso_liquido": 0.2,
+            "peso_bruto": 0.2,
+            "estoque_minimo": 0,
+            "estoque_maximo": 0,
+            "id_fornecedor": 0,
+            "nome_fornecedor": "",
+            "codigo_fornecedor": "",
+            "codigo_pelo_fornecedor": "",
+            "unidade_por_caixa": "",
+            "preco_custo": 59.02,
+            "preco_custo_medio": 59.02,
+            "situacao": "A",
+            "tipo": "P",
+            "classe_ipi": "",
+            "valor_ipi_fixo": "0.0000",
+            "cod_lista_servicos": "",
+            "descricao_complementar": "<p class=\"p1\" style=\"margin: 0px; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-alternates: normal; font-kerning: auto; font-optical-sizing: auto; font-feature-settings: normal; font-variation-settings: normal; font-stretch: normal; font-size: 13px; line-height: normal; font-family: 'Helvetica Neue';\">Os Funko Pop! São bonecos colecionáveis da Marca Funko! Fabricado em PVC, o boneco Pop da Funko traz os personagens favoritos das crianças e adolescentes em uma coleção incrível de bonecos.</p> <p class=\"p2\" style=\"margin: 0px; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-alternates: normal; font-kerning: auto; font-optical-sizing: auto; font-feature-settings: normal; font-variation-settings: normal; font-stretch: normal; font-size: 13px; line-height: normal; font-family: 'Helvetica Neue'; min-height: 15px;\"> </p> <p class=\"p1\" style=\"margin: 0px; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-alternates: normal; font-kerning: auto; font-optical-sizing: auto; font-feature-settings: normal; font-variation-settings: normal; font-stretch: normal; font-size: 13px; line-height: normal; font-family: 'Helvetica Neue';\">Comece já a sua coleção de Funko Pop!</p> <p class=\"p1\" style=\"margin: 0px; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-alternates: normal; font-kerning: auto; font-optical-sizing: auto; font-feature-settings: normal; font-variation-settings: normal; font-stretch: normal; font-size: 13px; line-height: normal; font-family: 'Helvetica Neue';\">Imagens Meramente Ilustrativas!</p> <p class=\"p1\" style=\"margin: 0px; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-alternates: normal; font-kerning: auto; font-optical-sizing: auto; font-feature-settings: normal; font-variation-settings: normal; font-stretch: normal; font-size: 13px; line-height: normal; font-family: 'Helvetica Neue';\">Todas as Informações divulgadas são de responsabilidade exclusiva do Fabricante/Fornecedor.</p> <p class=\"p1\" style=\"margin: 0px; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-alternates: normal; font-kerning: auto; font-optical-sizing: auto; font-feature-settings: normal; font-variation-settings: normal; font-stretch: normal; font-size: 13px; line-height: normal; font-family: 'Helvetica Neue';\">Observe atentamente a idade recomendada para o brinquedo.</p> <p class=\"p1\" style=\"margin: 0px; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-alternates: normal; font-kerning: auto; font-optical-sizing: auto; font-feature-settings: normal; font-variation-settings: normal; font-stretch: normal; font-size: 13px; line-height: normal; font-family: 'Helvetica Neue';\">Pode conter partes pequenas que podem ser engolidas e perigosas.</p> <p class=\"p2\" style=\"margin: 0px; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-alternates: normal; font-kerning: auto; font-optical-sizing: auto; font-feature-settings: normal; font-variation-settings: normal; font-stretch: normal; font-size: 13px; line-height: normal; font-family: 'Helvetica Neue'; min-height: 15px;\"> </p> <p class=\"p1\" style=\"margin: 0px; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-alternates: normal; font-kerning: auto; font-optical-sizing: auto; font-feature-settings: normal; font-variation-settings: normal; font-stretch: normal; font-size: 13px; line-height: normal; font-family: 'Helvetica Neue';\">Figura Colecionável</p> <p class=\"p1\" style=\"margin: 0px; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-alternates: normal; font-kerning: auto; font-optical-sizing: auto; font-feature-settings: normal; font-variation-settings: normal; font-stretch: normal; font-size: 13px; line-height: normal; font-family: 'Helvetica Neue';\">Material: Vinil / Multicolor</p> <p class=\"p1\" style=\"margin: 0px; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-alternates: normal; font-kerning: auto; font-optical-sizing: auto; font-feature-settings: normal; font-variation-settings: normal; font-stretch: normal; font-size: 13px; line-height: normal; font-family: 'Helvetica Neue';\">Tamanho: Aprox. 10 cm de altura</p> <p class=\"p1\" style=\"margin: 0px; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-alternates: normal; font-kerning: auto; font-optical-sizing: auto; font-feature-settings: normal; font-variation-settings: normal; font-stretch: normal; font-size: 13px; line-height: normal; font-family: 'Helvetica Neue';\">Peso: Aprox. 0.250 Kg</p> <p class=\"p1\" style=\"margin: 0px; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-alternates: normal; font-kerning: auto; font-optical-sizing: auto; font-feature-settings: normal; font-variation-settings: normal; font-stretch: normal; font-size: 13px; line-height: normal; font-family: 'Helvetica Neue';\">Fabricante: Funko</p> <p class=\"p1\" style=\"margin: 0px; font-variant-numeric: normal; font-variant-east-asian: normal; font-variant-alternates: normal; font-kerning: auto; font-optical-sizing: auto; font-feature-settings: normal; font-variation-settings: normal; font-stretch: normal; font-size: 13px; line-height: normal; font-family: 'Helvetica Neue';\">Não recomendado para menores de 14 anos.</p>",
+            "garantia": "",
+            "cest": "28.064.00",
+            "obs": "",
+            "tipoVariacao": "N",
+            "variacoes": "",
+            "idProdutoPai": "0",
+            "sob_encomenda": "N",
+            "dias_preparacao": "0",
+            "marca": "FUNKO",
+            "tipoEmbalagem": "2",
+            "alturaEmbalagem": "17.0",
+            "comprimentoEmbalagem": "9.0",
+            "larguraEmbalagem": "12.0",
+            "diametroEmbalagem": "0.0",
+            "qtd_volumes": "0",
+            "categoria": "FUNKO >> ANIMATION >> JUJUTSU KAISEN",
+            "anexos": [
+                {
+                    "anexo": "https://s3.amazonaws.com/tiny-anexos-us/erp/OTk4NTY0MTY3/f5d78014b4ca3ce48ec30e90732adedf.jpeg"
+                },
+                {
+                    "anexo": "https://s3.amazonaws.com/tiny-anexos-us/erp/OTk4NTY0MTY3/c28468baf9fc138e517c66c6af9b7a10.jpg"
+                }
+            ],
+            "imagens_externas": [],
+            "classe_produto": "S",
+            "seo_title": "",
+            "seo_keywords": "",
+            "link_video": "",
+            "seo_description": "",
+            "slug": ""
+        }
+    }
+}
+
+resposta nao OK
+
+{
+    "retorno": {
+        "status_processamento": "2",
+        "status": "Erro",
+        "codigo_erro": "20",
+        "erros": [
+            {
+                "erro": "A consulta não retornou registros"
+            }
+        ]
+    }
+}

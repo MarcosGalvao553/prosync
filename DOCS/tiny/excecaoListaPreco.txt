@@ -1,0 +1,820 @@
+exemplo curl:
+
+curl --location 'https://api.tiny.com.br/api2/listas.precos.excecoes.php' \
+--header 'Authorization: Bearer ae30d99abfd42cee1757bbe828ebab7cf19b5717873890fd59f6a114a3c17bb5' \
+--form 'token="ae30d99abfd42cee1757bbe828ebab7cf19b5717873890fd59f6a114a3c17bb5"' \
+--form 'idListaPreco="43"' \
+--form 'formato="json"'
+
+exemplo resposta:
+
+{
+    "retorno": {
+        "status_processamento": "3",
+        "status": "OK",
+        "pagina": 1,
+        "numero_paginas": 39,
+        "registros": [
+            {
+                "registro": {
+                    "id": 4128,
+                    "id_lista_preco": 43,
+                    "id_produto": 967607091,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4129,
+                    "id_lista_preco": 43,
+                    "id_produto": 967627551,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4130,
+                    "id_lista_preco": 43,
+                    "id_produto": 967625032,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4131,
+                    "id_lista_preco": 43,
+                    "id_produto": 967619359,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4132,
+                    "id_lista_preco": 43,
+                    "id_produto": 967607004,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4133,
+                    "id_lista_preco": 43,
+                    "id_produto": 967618000,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4134,
+                    "id_lista_preco": 43,
+                    "id_produto": 967627149,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4135,
+                    "id_lista_preco": 43,
+                    "id_produto": 967617508,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4136,
+                    "id_lista_preco": 43,
+                    "id_produto": 967617407,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4137,
+                    "id_lista_preco": 43,
+                    "id_produto": 967611798,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4138,
+                    "id_lista_preco": 43,
+                    "id_produto": 967612019,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4139,
+                    "id_lista_preco": 43,
+                    "id_produto": 967611903,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4140,
+                    "id_lista_preco": 43,
+                    "id_produto": 967618846,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4141,
+                    "id_lista_preco": 43,
+                    "id_produto": 967618747,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4142,
+                    "id_lista_preco": 43,
+                    "id_produto": 967618558,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4143,
+                    "id_lista_preco": 43,
+                    "id_produto": 967618335,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4144,
+                    "id_lista_preco": 43,
+                    "id_produto": 967619471,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4145,
+                    "id_lista_preco": 43,
+                    "id_produto": 967618101,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4146,
+                    "id_lista_preco": 43,
+                    "id_produto": 967617014,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4147,
+                    "id_lista_preco": 43,
+                    "id_produto": 967616783,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4148,
+                    "id_lista_preco": 43,
+                    "id_produto": 967617803,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4149,
+                    "id_lista_preco": 43,
+                    "id_produto": 967616889,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4150,
+                    "id_lista_preco": 43,
+                    "id_produto": 967616565,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4151,
+                    "id_lista_preco": 43,
+                    "id_produto": 967626430,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4152,
+                    "id_lista_preco": 43,
+                    "id_produto": 967612801,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4153,
+                    "id_lista_preco": 43,
+                    "id_produto": 967627464,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4154,
+                    "id_lista_preco": 43,
+                    "id_produto": 967606733,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4155,
+                    "id_lista_preco": 43,
+                    "id_produto": 967643178,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4156,
+                    "id_lista_preco": 43,
+                    "id_produto": 967612488,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4157,
+                    "id_lista_preco": 43,
+                    "id_produto": 967612593,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4158,
+                    "id_lista_preco": 43,
+                    "id_produto": 967617135,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4159,
+                    "id_lista_preco": 43,
+                    "id_produto": 967616361,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4160,
+                    "id_lista_preco": 43,
+                    "id_produto": 967626052,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4161,
+                    "id_lista_preco": 43,
+                    "id_produto": 967616260,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4162,
+                    "id_lista_preco": 43,
+                    "id_produto": 967626174,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4163,
+                    "id_lista_preco": 43,
+                    "id_produto": 967617893,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4164,
+                    "id_lista_preco": 43,
+                    "id_produto": 967617596,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4165,
+                    "id_lista_preco": 43,
+                    "id_produto": 967626565,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4166,
+                    "id_lista_preco": 43,
+                    "id_produto": 967625809,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4167,
+                    "id_lista_preco": 43,
+                    "id_produto": 967625940,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4168,
+                    "id_lista_preco": 43,
+                    "id_produto": 967628828,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4169,
+                    "id_lista_preco": 43,
+                    "id_produto": 967617694,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4170,
+                    "id_lista_preco": 43,
+                    "id_produto": 967625685,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4171,
+                    "id_lista_preco": 43,
+                    "id_produto": 967619589,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4172,
+                    "id_lista_preco": 43,
+                    "id_produto": 967615585,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4173,
+                    "id_lista_preco": 43,
+                    "id_produto": 967626684,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4174,
+                    "id_lista_preco": 43,
+                    "id_produto": 967627045,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4175,
+                    "id_lista_preco": 43,
+                    "id_produto": 967626926,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4176,
+                    "id_lista_preco": 43,
+                    "id_produto": 967625486,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4177,
+                    "id_lista_preco": 43,
+                    "id_produto": 967625130,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4178,
+                    "id_lista_preco": 43,
+                    "id_produto": 967618218,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4179,
+                    "id_lista_preco": 43,
+                    "id_produto": 967625358,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4180,
+                    "id_lista_preco": 43,
+                    "id_produto": 967625237,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4181,
+                    "id_lista_preco": 43,
+                    "id_produto": 967607161,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4182,
+                    "id_lista_preco": 43,
+                    "id_produto": 967619242,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4183,
+                    "id_lista_preco": 43,
+                    "id_produto": 967616175,
+                    "preco": 28.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4184,
+                    "id_lista_preco": 43,
+                    "id_produto": 967531823,
+                    "preco": 58.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4186,
+                    "id_lista_preco": 43,
+                    "id_produto": 967531733,
+                    "preco": 58.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4187,
+                    "id_lista_preco": 43,
+                    "id_produto": 967689218,
+                    "preco": 59.02
+                }
+            },
+            {
+                "registro": {
+                    "id": 4188,
+                    "id_lista_preco": 43,
+                    "id_produto": 967686987,
+                    "preco": 59.02
+                }
+            },
+            {
+                "registro": {
+                    "id": 4189,
+                    "id_lista_preco": 43,
+                    "id_produto": 967686109,
+                    "preco": 59.02
+                }
+            },
+            {
+                "registro": {
+                    "id": 4190,
+                    "id_lista_preco": 43,
+                    "id_produto": 967686102,
+                    "preco": 59.02
+                }
+            },
+            {
+                "registro": {
+                    "id": 4191,
+                    "id_lista_preco": 43,
+                    "id_produto": 967686011,
+                    "preco": 59.02
+                }
+            },
+            {
+                "registro": {
+                    "id": 4193,
+                    "id_lista_preco": 43,
+                    "id_produto": 967685893,
+                    "preco": 59.02
+                }
+            },
+            {
+                "registro": {
+                    "id": 4194,
+                    "id_lista_preco": 43,
+                    "id_produto": 967685745,
+                    "preco": 59.02
+                }
+            },
+            {
+                "registro": {
+                    "id": 4198,
+                    "id_lista_preco": 43,
+                    "id_produto": 967684976,
+                    "preco": 59.02
+                }
+            },
+            {
+                "registro": {
+                    "id": 4203,
+                    "id_lista_preco": 43,
+                    "id_produto": 967679580,
+                    "preco": 59.02
+                }
+            },
+            {
+                "registro": {
+                    "id": 4204,
+                    "id_lista_preco": 43,
+                    "id_produto": 967678765,
+                    "preco": 59.02
+                }
+            },
+            {
+                "registro": {
+                    "id": 4205,
+                    "id_lista_preco": 43,
+                    "id_produto": 967678321,
+                    "preco": 59.02
+                }
+            },
+            {
+                "registro": {
+                    "id": 4206,
+                    "id_lista_preco": 43,
+                    "id_produto": 967678311,
+                    "preco": 59.02
+                }
+            },
+            {
+                "registro": {
+                    "id": 4207,
+                    "id_lista_preco": 43,
+                    "id_produto": 967678286,
+                    "preco": 59.02
+                }
+            },
+            {
+                "registro": {
+                    "id": 4208,
+                    "id_lista_preco": 43,
+                    "id_produto": 967678252,
+                    "preco": 59.02
+                }
+            },
+            {
+                "registro": {
+                    "id": 4210,
+                    "id_lista_preco": 43,
+                    "id_produto": 967678185,
+                    "preco": 59.02
+                }
+            },
+            {
+                "registro": {
+                    "id": 4212,
+                    "id_lista_preco": 43,
+                    "id_produto": 967677545,
+                    "preco": 59.02
+                }
+            },
+            {
+                "registro": {
+                    "id": 4214,
+                    "id_lista_preco": 43,
+                    "id_produto": 967676849,
+                    "preco": 59.02
+                }
+            },
+            {
+                "registro": {
+                    "id": 4215,
+                    "id_lista_preco": 43,
+                    "id_produto": 967676199,
+                    "preco": 59.02
+                }
+            },
+            {
+                "registro": {
+                    "id": 4216,
+                    "id_lista_preco": 43,
+                    "id_produto": 967676190,
+                    "preco": 59.02
+                }
+            },
+            {
+                "registro": {
+                    "id": 4218,
+                    "id_lista_preco": 43,
+                    "id_produto": 967514370,
+                    "preco": 59.02
+                }
+            },
+            {
+                "registro": {
+                    "id": 4219,
+                    "id_lista_preco": 43,
+                    "id_produto": 967514548,
+                    "preco": 59.02
+                }
+            },
+            {
+                "registro": {
+                    "id": 4220,
+                    "id_lista_preco": 43,
+                    "id_produto": 967514630,
+                    "preco": 59.02
+                }
+            },
+            {
+                "registro": {
+                    "id": 4222,
+                    "id_lista_preco": 43,
+                    "id_produto": 967675846,
+                    "preco": 59.02
+                }
+            },
+            {
+                "registro": {
+                    "id": 4223,
+                    "id_lista_preco": 43,
+                    "id_produto": 967675211,
+                    "preco": 59.02
+                }
+            },
+            {
+                "registro": {
+                    "id": 4224,
+                    "id_lista_preco": 43,
+                    "id_produto": 967674805,
+                    "preco": 59.02
+                }
+            },
+            {
+                "registro": {
+                    "id": 4226,
+                    "id_lista_preco": 43,
+                    "id_produto": 967671068,
+                    "preco": 59.02
+                }
+            },
+            {
+                "registro": {
+                    "id": 4227,
+                    "id_lista_preco": 43,
+                    "id_produto": 967688973,
+                    "preco": 68.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4228,
+                    "id_lista_preco": 43,
+                    "id_produto": 967688563,
+                    "preco": 68.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4229,
+                    "id_lista_preco": 43,
+                    "id_produto": 967688548,
+                    "preco": 68.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4230,
+                    "id_lista_preco": 43,
+                    "id_produto": 967688344,
+                    "preco": 68.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4231,
+                    "id_lista_preco": 43,
+                    "id_produto": 967640901,
+                    "preco": 68.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4232,
+                    "id_lista_preco": 43,
+                    "id_produto": 967687484,
+                    "preco": 68.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4233,
+                    "id_lista_preco": 43,
+                    "id_produto": 967611155,
+                    "preco": 68.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4234,
+                    "id_lista_preco": 43,
+                    "id_produto": 967651498,
+                    "preco": 68.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4235,
+                    "id_lista_preco": 43,
+                    "id_produto": 967687291,
+                    "preco": 68.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4236,
+                    "id_lista_preco": 43,
+                    "id_produto": 967687243,
+                    "preco": 68.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4237,
+                    "id_lista_preco": 43,
+                    "id_produto": 967687250,
+                    "preco": 68.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4238,
+                    "id_lista_preco": 43,
+                    "id_produto": 967640134,
+                    "preco": 68.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4239,
+                    "id_lista_preco": 43,
+                    "id_produto": 967651390,
+                    "preco": 68.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4240,
+                    "id_lista_preco": 43,
+                    "id_produto": 967687010,
+                    "preco": 68.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4241,
+                    "id_lista_preco": 43,
+                    "id_produto": 967686979,
+                    "preco": 68.8
+                }
+            },
+            {
+                "registro": {
+                    "id": 4242,
+                    "id_lista_preco": 43,
+                    "id_produto": 967640017,
+                    "preco": 68.8
+                }
+            }
+        ]
+    }
+}

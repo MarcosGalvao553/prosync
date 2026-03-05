@@ -1,0 +1,36 @@
+# Binários
+prosync
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+air
+tmp
+
+# Arquivos de teste
+*.test
+*.out
+
+# Dependências
+vendor/
+
+# Arquivos de configuração locais
+.env
+
+# Logs
+logs/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git

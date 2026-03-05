@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  prosync:
+    container_name: prosync
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=${DB_HOST:-164.92.67.204}
+      - DB_PORT=${DB_PORT:-3307}
+      - DB_DATABASE=${DB_DATABASE:-nerdrop}
+      - DB_USERNAME=${DB_USERNAME:-root}
+      - DB_PASSWORD=${DB_PASSWORD:-DropNOlemq10w}
+      - TINY_BEARER_TOKEN=${TINY_BEARER_TOKEN}
+      - TINY_ID_LISTA_PRECO=${TINY_ID_LISTA_PRECO}
+      - TINY_BASE_URL=${TINY_BASE_URL:-https://api.tiny.com.br/api2}
+      - INTERVALO_EXECUCAO_MINUTOS=${INTERVALO_EXECUCAO_MINUTOS:-30}
+      - AMBIENTE=${AMBIENTE:-production}
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - drop_default
+
+networks:
+  drop_default:
+    external: true

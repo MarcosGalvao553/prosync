@@ -1,0 +1,59 @@
+curl --location 'https://api.tiny.com.br/api2/produto.obter.estoque.php' \
+--header 'Authorization: Bearer ae30d99abfd42cee1757bbe828ebab7cf19b5717873890fd59f6a114a3c17bb5' \
+--form 'token="ae30d99abfd42cee1757bbe828ebab7cf19b5717873890fd59f6a114a3c17bb5"' \
+--form 'idListaPreco="43"' \
+--form 'id="967641344"'  <- é o idProduto que vem da excecao_lista_preco
+
+
+resposta OK
+
+{
+    "retorno": {
+        "status_processamento": "3",
+        "status": "OK",
+        "produto": {
+            "id": "967641344",
+            "nome": "Funko Pop Jujutsu Kaisen Yuji Itadori 1111",
+            "codigo": "11026",
+            "unidade": "un",
+            "saldo": 24,
+            "saldoReservado": 14,
+            "depositos": [
+                {
+                    "deposito": {
+                        "nome": "Geral",
+                        "desconsiderar": "N",
+                        "saldo": 24,
+                        "empresa": "DISTRIBGEEK"
+                    }
+                },
+                {
+                    "deposito": {
+                        "nome": "TRANSF",
+                        "desconsiderar": "S",
+                        "saldo": 0,
+                        "empresa": "DISTRIBGEEK"
+                    }
+                }
+            ]
+        }
+    }
+}
+
+
+resposta nao OK
+
+{
+    "retorno": {
+        "status_processamento": "2",
+        "status": "Erro",
+        "codigo_erro": "32",
+        "erros": [
+            {
+                "erro": "Produto não localizado"
+            }
+        ]
+    }
+}
+
+
