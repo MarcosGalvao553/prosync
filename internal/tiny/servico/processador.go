@@ -268,14 +268,24 @@ func (p *ProcessadorTiny) ProcessarExcecoesListaPreco() ([]ProdutoCompleto, erro
 			})
 
 			// Verifica se produto já existe para mostrar mensagem apropriada
-			produtoExistente, _ := p.productRepo.BuscarPorSKU(produto.Codigo)
+			fmt.Printf("\n═══════════════════════════════════════════════════════════\n")
+			fmt.Printf("🔍 VERIFICANDO PRODUTO - SKU: %s (ID Tiny: %s)\n", produto.Codigo, idProduto)
+			produtoExistente, errBusca := p.productRepo.BuscarPorSKU(produto.Codigo)
+
+			if errBusca != nil {
+				fmt.Printf("❌ ERRO ao buscar produto: %v\n", errBusca)
+				fmt.Printf("⚠️  Abortando para evitar duplicata\n")
+				fmt.Printf("═══════════════════════════════════════════════════════════\n\n")
+				continue
+			}
+
 			isNovo := produtoExistente == nil
 
 			// Salva ou atualiza o produto no banco
 			if isNovo {
-				fmt.Printf("\n💾 Criando novo produto %s (SKU: %s)...\n", idProduto, produto.Codigo)
+				fmt.Printf("💾 CRIANDO novo produto (SKU: %s)\n", produto.Codigo)
 			} else {
-				fmt.Printf("\n🔄 Atualizando produto %s (SKU: %s, ID: %d)...\n", idProduto, produto.Codigo, produtoExistente.ID)
+				fmt.Printf("🔄 ATUALIZANDO produto existente (ID: %d, SKU: %s)\n", produtoExistente.ID, produto.Codigo)
 			}
 
 			produtoSalvo, errSalvar := p.productRepo.CriarOuAtualizar(produto.Codigo, produtoParams)
@@ -284,19 +294,22 @@ func (p *ProcessadorTiny) ProcessarExcecoesListaPreco() ([]ProdutoCompleto, erro
 					fmt.Sprintf("Erro ao salvar produto %s (SKU: %s)", idProduto, produto.Codigo),
 					errSalvar,
 				)
-				fmt.Printf("❌ Erro ao salvar produto %s (SKU: %s): %v\n", idProduto, produto.Codigo, errSalvar)
+				fmt.Printf("❌ ERRO ao salvar: %v\n", errSalvar)
+				fmt.Printf("═══════════════════════════════════════════════════════════\n\n")
 			} else {
 				produtoCompleto.ProdutoNerdrop = produtoSalvo
 				if isNovo {
 					p.logger.RegistrarInfo("processador",
 						fmt.Sprintf("Produto criado com sucesso: ID %d, SKU %s", produtoSalvo.ID, produto.Codigo),
 					)
-					fmt.Printf("✅ Produto criado: ID %d, SKU %s, Nome: %s\n", produtoSalvo.ID, produto.Codigo, produto.Nome)
+					fmt.Printf("✅ SUCESSO - Produto CRIADO: ID %d, SKU %s, Nome: %s\n", produtoSalvo.ID, produto.Codigo, produto.Nome)
+					fmt.Printf("═══════════════════════════════════════════════════════════\n\n")
 				} else {
 					p.logger.RegistrarInfo("processador",
 						fmt.Sprintf("Produto atualizado com sucesso: ID %d, SKU %s", produtoSalvo.ID, produto.Codigo),
 					)
-					fmt.Printf("✅ Produto atualizado: ID %d, SKU %s, Nome: %s\n", produtoSalvo.ID, produto.Codigo, produto.Nome)
+					fmt.Printf("✅ SUCESSO - Produto ATUALIZADO: ID %d, SKU %s, Nome: %s\n", produtoSalvo.ID, produto.Codigo, produto.Nome)
+					fmt.Printf("═══════════════════════════════════════════════════════════\n\n")
 				}
 
 				// Deleta imagens antigas do produto
