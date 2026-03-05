@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 
@@ -79,8 +80,8 @@ func ExemploUso() {
 		CostPrice:   50.00,
 		CategoryID:  1,
 		IsEnabled:   true,
-		SaleCount:   0,
-		ReviewCount: 0,
+		SaleCount:   sql.NullInt64{Int64: 0, Valid: true},
+		ReviewCount: sql.NullInt64{Int64: 0, Valid: true},
 	}
 
 	err = produtoRepo.Salvar(novoProduto)
