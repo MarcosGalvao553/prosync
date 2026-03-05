@@ -49,8 +49,6 @@ func (r *ProductRepository) BuscarPorID(id int) (*models.Product, error) {
 
 // BuscarPorSKU busca um produto pelo SKU
 func (r *ProductRepository) BuscarPorSKU(sku string) (*models.Product, error) {
-	fmt.Printf("   🔎 [DEBUG] BuscarPorSKU - Query com SKU: '%s'\n", sku)
-
 	query := `
 		SELECT id, name, description, price, cost_price, category_id, isEnabled, 
 		       isPreSale, sale_count, review_count, sku, stock, observation,
@@ -71,19 +69,10 @@ func (r *ProductRepository) BuscarPorSKU(sku string) (*models.Product, error) {
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			fmt.Printf("   ℹ️  [DEBUG] Nenhum registro encontrado para SKU: '%s'\n", sku)
 			return nil, nil // Retorna nil sem erro quando não encontra
 		}
-		fmt.Printf("   ❌ [DEBUG] Erro na query: %v\n", err)
-		return nil, fmt.Errorf("erro ao buscar produto: %w", err)
+		return nil, fmt.Errorf("erro ao buscar produto por SKU: %w", err)
 	}
-
-	skuValue := "NULL"
-	if p.SKU.Valid {
-		skuValue = p.SKU.String
-	}
-	fmt.Printf("   ✅ [DEBUG] Produto encontrado - ID: %d, SKU no banco: '%s'\n", p.ID, skuValue)
-
 	return &p, nil
 }
 
@@ -230,20 +219,14 @@ func (r *ProductRepository) Salvar(p *models.Product) error {
 
 // CriarOuAtualizar busca produto pelo SKU e atualiza, ou cria novo se não existir
 func (r *ProductRepository) CriarOuAtualizar(sku string, p *models.Product) (*models.Product, error) {
-	fmt.Printf("\n🔍 [DEBUG] CriarOuAtualizar - Buscando produto com SKU: %s\n", sku)
-
 	// Tenta buscar produto existente pelo SKU
 	produtoExistente, err := r.BuscarPorSKU(sku)
-
 	if err != nil {
-		fmt.Printf("❌ [DEBUG] Erro ao buscar produto: %v\n", err)
+		return nil, fmt.Errorf("erro ao buscar produto existente: %w", err)
 	}
 
-	if err == nil && produtoExistente != nil {
+	if produtoExistente != nil {
 		// Produto existe, atualiza com o ID existente
-		fmt.Printf("✅ [DEBUG] Produto ENCONTRADO - ID: %d, SKU: %s\n", produtoExistente.ID, sku)
-		fmt.Printf("   → Será ATUALIZADO (não criará duplicata)\n")
-
 		p.ID = produtoExistente.ID
 		// Mantém campos que não devem ser sobrescritos
 		p.SaleCount = produtoExistente.SaleCount
@@ -251,19 +234,13 @@ func (r *ProductRepository) CriarOuAtualizar(sku string, p *models.Product) (*mo
 		p.CreatedAt = produtoExistente.CreatedAt
 	} else {
 		// Produto não existe, será criado (ID = 0)
-		fmt.Printf("⚠️  [DEBUG] Produto NÃO encontrado - SKU: %s\n", sku)
-		fmt.Printf("   → Será CRIADO novo registro\n")
 		p.ID = 0
 	}
 
-	fmt.Printf("💾 [DEBUG] Chamando Salvar com ID: %d\n", p.ID)
-
 	// Salva (insert ou update)
 	if err := r.Salvar(p); err != nil {
-		fmt.Printf("❌ [DEBUG] Erro ao salvar: %v\n", err)
 		return nil, err
 	}
 
-	fmt.Printf("✅ [DEBUG] Produto salvo com sucesso - ID final: %d\n", p.ID)
 	return p, nil
 }

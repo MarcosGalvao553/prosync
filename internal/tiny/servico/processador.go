@@ -410,8 +410,8 @@ func (p *ProcessadorTiny) prepararParametrosProduto(produto *dto.ProdutoTiny, ca
 		CategoryID:  categoryID,
 		IsEnabled:   isEnabled,
 		IsPreSale:   false, // Default false
-		SaleCount:   0,
-		ReviewCount: 0,
+		SaleCount:   sql.NullInt64{Int64: 0, Valid: true},
+		ReviewCount: sql.NullInt64{Int64: 0, Valid: true},
 		SKU:         toNullString(produto.Codigo),
 		Stock:       toNullInt64(estoqueCalculado),
 		Observation: toNullString(produto.Obs),

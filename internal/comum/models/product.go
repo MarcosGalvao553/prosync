@@ -15,8 +15,8 @@ type Product struct {
 	CategoryID    int             `db:"category_id" json:"category_id"`
 	IsEnabled     bool            `db:"isEnabled" json:"isEnabled"`
 	IsPreSale     bool            `db:"isPreSale" json:"isPreSale"`
-	SaleCount     int             `db:"sale_count" json:"sale_count"`
-	ReviewCount   int             `db:"review_count" json:"review_count"`
+	SaleCount     sql.NullInt64   `db:"sale_count" json:"sale_count,omitempty"`
+	ReviewCount   sql.NullInt64   `db:"review_count" json:"review_count,omitempty"`
 	SKU           sql.NullString  `db:"sku" json:"sku,omitempty"`
 	Stock         sql.NullInt64   `db:"stock" json:"stock,omitempty"`
 	Observation   sql.NullString  `db:"observation" json:"observation,omitempty"`
