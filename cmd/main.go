@@ -74,7 +74,7 @@ func main() {
 	fmt.Println("Processador criado")
 
 	// Inicia servidor web em goroutine
-	servidorWeb := servidor.NovoServidorWeb("8000", logger)
+	servidorWeb := servidor.NovoServidorWeb("8080", logger)
 	servidorWeb.SetProcessador(processador) // Configura o processador para receber webhooks
 	go func() {
 		if err := servidorWeb.Iniciar(); err != nil {
