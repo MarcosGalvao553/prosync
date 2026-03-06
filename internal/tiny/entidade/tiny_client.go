@@ -50,7 +50,7 @@ func (t *TinyClient) BuscarExcecoesListaPreco(pagina int) (*dto.ExcecaoListaPrec
 	formData.Set("token", t.config.TinyBearerToken)
 	formData.Set("idListaPreco", t.config.TinyIdListaPreco)
 	formData.Set("formato", "json")
-	// formData.Set("idProduto", "1025799210")
+	formData.Set("idProduto", "1025799210") // usar productId se fornecido, senao fornecer nao adiciona esse campo
 	if pagina > 0 {
 		formData.Set("pagina", fmt.Sprintf("%d", pagina))
 	}
@@ -473,14 +473,17 @@ func (t *TinyClient) BuscarEstoqueProduto(idProduto string) (*dto.EstoqueTiny, e
 func (t *TinyClient) BuscarPrecoProdutoListaPreco(idListaPreco int, idProduto string) (*dto.ProdutoExcecaoListaPrecoTiny, error) {
 	inicio := time.Now()
 
-	// Monta a URL
-	urlCompleta := fmt.Sprintf("%s/lista.preco.obter.php", t.config.TinyBaseURL)
+	// Aguarda rate limit
+	t.aguardarRateLimit()
+
+	// Monta a URL correta
+	urlCompleta := fmt.Sprintf("%s/listas.precos.excecoes.php", t.config.TinyBaseURL)
 
 	// Prepara os dados do formulário
 	formData := url.Values{}
 	formData.Set("token", t.config.TinyBearerToken)
-	formData.Set("id", fmt.Sprintf("%d", idListaPreco))
-	formData.Set("idProduto", idProduto)
+	formData.Set("idListaPreco", fmt.Sprintf("%d", idListaPreco))
+	formData.Set("idProduto", "967618335")
 	formData.Set("formato", "json")
 
 	// Cria a requisição
@@ -490,15 +493,14 @@ func (t *TinyClient) BuscarPrecoProdutoListaPreco(idListaPreco int, idProduto st
 	}
 
 	// Define os headers
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", t.config.TinyBearerToken))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	// Prepara dados para log (sem expor o token completo)
 	dadosRequisicao := map[string]interface{}{
-		"id":        idListaPreco,
-		"idProduto": idProduto,
-		"formato":   "json",
-		"token":     "***OCULTO***",
+		"idListaPreco": idListaPreco,
+		"idProduto":    idProduto,
+		"formato":      "json",
+		"token":        "***OCULTO***",
 	}
 
 	// Faz a requisição
@@ -541,6 +543,24 @@ func (t *TinyClient) BuscarPrecoProdutoListaPreco(idListaPreco int, idProduto st
 		return nil, fmt.Errorf("erro ao ler resposta: %w", err)
 	}
 
+	// Verifica se a resposta é HTML (erro da API)
+	if len(bodyBytes) > 0 && bodyBytes[0] == '<' {
+		duracao := time.Since(inicio)
+		t.logger.RegistrarChamada(logger.EntradaLog{
+			Servico:       "tiny",
+			Operacao:      "BuscarPrecoProdutoListaPreco",
+			URL:           urlCompleta,
+			MetodoHTTP:    "POST",
+			Requisicao:    dadosRequisicao,
+			StatusCode:    resp.StatusCode,
+			Erro:          fmt.Sprintf("API retornou HTML (status %d)", resp.StatusCode),
+			Duracao:       duracao.String(),
+			DuracaoMs:     float64(duracao.Milliseconds()),
+			ProdutoTinyID: idProduto,
+		})
+		return nil, fmt.Errorf("API retornou HTML em vez de JSON (status %d) - produto pode não existir na lista de preços", resp.StatusCode)
+	}
+
 	// Parse da resposta completa para o log
 	var respostaCompleta map[string]interface{}
 	json.Unmarshal(bodyBytes, &respostaCompleta)
@@ -548,7 +568,26 @@ func (t *TinyClient) BuscarPrecoProdutoListaPreco(idListaPreco int, idProduto st
 	// Parse do JSON para o DTO
 	var resposta dto.ExcecaoListaPrecoResponse
 	if err := json.Unmarshal(bodyBytes, &resposta); err != nil {
-		return nil, fmt.Errorf("erro ao fazer parse do JSON: %w", err)
+		duracao := time.Since(inicio)
+		// Mostra preview do corpo da resposta para debug
+		preview := string(bodyBytes)
+		if len(preview) > 200 {
+			preview = preview[:200] + "..."
+		}
+
+		t.logger.RegistrarChamada(logger.EntradaLog{
+			Servico:       "tiny",
+			Operacao:      "BuscarPrecoProdutoListaPreco",
+			URL:           urlCompleta,
+			MetodoHTTP:    "POST",
+			Requisicao:    dadosRequisicao,
+			StatusCode:    resp.StatusCode,
+			Erro:          fmt.Sprintf("erro ao fazer parse do JSON: %v - Preview: %s", err, preview),
+			Duracao:       duracao.String(),
+			DuracaoMs:     float64(duracao.Milliseconds()),
+			ProdutoTinyID: idProduto,
+		})
+		return nil, fmt.Errorf("erro ao fazer parse do JSON (produto pode não existir na lista de preços): %w", err)
 	}
 
 	// Registra log com resposta completa

@@ -651,19 +651,25 @@
                 const status = log.status || 'N/A';
                 const badgeClass = status === 'OK' ? 'badge-success' : 'badge-error';
                 const duration = Math.round(parseDuration(log.duracao));
+                
+                // Escapar campos para prevenir XSS
+                const operacao = escapeHtml(log.operacao || '');
+                const servico = escapeHtml(log.servico || '');
+                const produtoId = log.produto_tiny_id ? escapeHtml(String(log.produto_tiny_id)) : '';
+                const sku = log.sku ? escapeHtml(String(log.sku)) : '';
 
                 return `
                     <div class="log-item" onclick="toggleDetails(${index})">
                         <div class="log-item-header">
-                            <div class="log-operation">${log.operacao}</div>
+                            <div class="log-operation">${operacao}</div>
                             <div class="log-time">${timestamp}</div>
                         </div>
                         <div class="log-meta">
                             <span class="log-badge ${badgeClass}">${status}</span>
                             <span class="log-badge badge-info">${duration}ms</span>
-                            <span class="log-badge badge-info">${log.servico}</span>
-                            ${log.produto_tiny_id ? `<span class="log-badge badge-info">ID: ${log.produto_tiny_id}</span>` : ''}
-                            ${log.sku ? `<span class="log-badge badge-info">SKU: ${log.sku}</span>` : ''}
+                            <span class="log-badge badge-info">${servico}</span>
+                            ${produtoId ? `<span class="log-badge badge-info">ID: ${produtoId}</span>` : ''}
+                            ${sku ? `<span class="log-badge badge-info">SKU: ${sku}</span>` : ''}
                         </div>
                         <div class="log-details" id="details-${index}" onclick="event.stopPropagation()">
                             ${renderDetalhes(log)}
@@ -678,6 +684,30 @@
             document.getElementById('btnNextPage').disabled = paginaAtual >= totalPaginas || logs.length < itensPorPagina;
         }
 
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatJSON(data) {
+            if (!data) return 'N/A';
+            
+            // Se for string, tenta fazer parse
+            if (typeof data === 'string') {
+                try {
+                    const parsed = JSON.parse(data);
+                    return escapeHtml(JSON.stringify(parsed, null, 2));
+                } catch (e) {
+                    // Se não conseguir parsear, retorna a string mesmo
+                    return escapeHtml(data);
+                }
+            }
+            
+            // Se já for objeto/array, formata normalmente
+            return escapeHtml(JSON.stringify(data, null, 2));
+        }
+
         function renderDetalhes(log) {
             let html = '';
 
@@ -685,7 +715,7 @@
                 html += `
                     <div class="detail-section">
                         <h4>Requisição</h4>
-                        <div class="detail-content">${JSON.stringify(log.requisicao, null, 2)}</div>
+                        <div class="detail-content">${formatJSON(log.requisicao)}</div>
                     </div>
                 `;
             }
@@ -694,7 +724,7 @@
                 html += `
                     <div class="detail-section">
                         <h4>Resposta</h4>
-                        <div class="detail-content">${JSON.stringify(log.resposta, null, 2)}</div>
+                        <div class="detail-content">${formatJSON(log.resposta)}</div>
                     </div>
                 `;
             }
@@ -703,7 +733,7 @@
                 html += `
                     <div class="detail-section">
                         <h4>URL</h4>
-                        <div class="detail-content">${log.metodo_http} ${log.url}</div>
+                        <div class="detail-content">${escapeHtml(log.metodo_http)} ${escapeHtml(log.url)}</div>
                     </div>
                 `;
             }
@@ -712,7 +742,7 @@
                 html += `
                     <div class="detail-section">
                         <h4>Erro</h4>
-                        <div class="detail-content" style="color: #dc3545;">${log.erro}</div>
+                        <div class="detail-content" style="color: #dc3545;">${escapeHtml(log.erro)}</div>
                     </div>
                 `;
             }

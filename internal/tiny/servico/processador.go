@@ -13,6 +13,7 @@ import (
 	"prosync/internal/comum/repositories"
 	"prosync/internal/tiny/dto"
 	"prosync/internal/tiny/entidade"
+	trovataServico "prosync/internal/trovata/servico"
 )
 
 // ProdutoCompleto agrega todas as informações de um produto
@@ -34,7 +35,8 @@ type ProcessadorTiny struct {
 	productRepo          *repositories.ProductRepository
 	productPromotionRepo *repositories.ProductPromotionRepository
 	productImageRepo     *repositories.ProductImageRepository
-	processadorBling     *blingServico.ProcessadorBling // Opcional
+	processadorBling     *blingServico.ProcessadorBling     // Opcional
+	processadorTrovata   *trovataServico.ProcessadorTrovata // Opcional
 }
 
 const (
@@ -45,7 +47,7 @@ const (
 )
 
 // NovoProcessadorTiny cria uma nova instância do processador
-func NovoProcessadorTiny(client *entidade.TinyClient, logger *logger.Logger, categoryRepo *repositories.CategoryRepository, productRepo *repositories.ProductRepository, productPromotionRepo *repositories.ProductPromotionRepository, productImageRepo *repositories.ProductImageRepository, processadorBling *blingServico.ProcessadorBling) *ProcessadorTiny {
+func NovoProcessadorTiny(client *entidade.TinyClient, logger *logger.Logger, categoryRepo *repositories.CategoryRepository, productRepo *repositories.ProductRepository, productPromotionRepo *repositories.ProductPromotionRepository, productImageRepo *repositories.ProductImageRepository, processadorBling *blingServico.ProcessadorBling, processadorTrovata *trovataServico.ProcessadorTrovata) *ProcessadorTiny {
 	return &ProcessadorTiny{
 		client:               client,
 		logger:               logger,
@@ -54,6 +56,7 @@ func NovoProcessadorTiny(client *entidade.TinyClient, logger *logger.Logger, cat
 		productPromotionRepo: productPromotionRepo,
 		productImageRepo:     productImageRepo,
 		processadorBling:     processadorBling,
+		processadorTrovata:   processadorTrovata,
 	}
 }
 
@@ -343,6 +346,26 @@ func (p *ProcessadorTiny) ProcessarExcecoesListaPreco() ([]ProdutoCompleto, erro
 					)
 					fmt.Printf("   📸 %d imagens salvas para produto %d\n", len(produto.Anexos), produtoSalvo.ID)
 				}
+
+				// Sincroniza com Trovata ANTES do Bling (assíncrono para não bloquear)
+				if p.processadorTrovata != nil {
+					go func(prod *models.Product, cat *models.Category, sku, idTiny string) {
+						fmt.Printf("\n   🔄 Sincronizando com Trovata (async)...\n")
+						if err := p.processadorTrovata.SincronizarProduto(prod, cat, sku, idTiny); err != nil {
+							p.logger.RegistrarErro("processador",
+								fmt.Sprintf("Erro ao sincronizar produto %d com Trovata", prod.ID),
+								err,
+							)
+							fmt.Printf("   ⚠️  Erro na sincronização Trovata: %v\n", err)
+						} else {
+							p.logger.RegistrarInfo("processador",
+								fmt.Sprintf("Produto %d sincronizado com Trovata", prod.ID),
+							)
+							fmt.Printf("   ✅ Produto sincronizado com Trovata\n")
+						}
+					}(produtoSalvo, produtoCompleto.Categoria, produto.Codigo, idProduto)
+				}
+
 				// Sincroniza com Bling (se processadorBling estiver configurado)
 				if p.processadorBling != nil {
 					if err := p.processadorBling.SincronizarProduto(produtoSalvo, produto.Codigo); err != nil {
@@ -365,6 +388,317 @@ func (p *ProcessadorTiny) ProcessarExcecoesListaPreco() ([]ProdutoCompleto, erro
 	))
 
 	return produtosCompletos, nil
+}
+
+// ProcessarProdutoEspecifico processa apenas um produto específico (chamado pelo webhook)
+func (p *ProcessadorTiny) ProcessarProdutoEspecifico(idProduto string) error {
+	p.logger.RegistrarInfo("webhook", fmt.Sprintf("=== PROCESSAMENTO DE PRODUTO ESPECÍFICO: %s ===", idProduto))
+
+	// Busca o preço do produto na lista de preços
+	idListaPreco, _ := strconv.Atoi(p.client.ObterConfig().TinyIdListaPreco)
+	excecao, err := p.client.BuscarPrecoProdutoListaPreco(idListaPreco, idProduto)
+	if err != nil {
+		p.logger.RegistrarErro("webhook", fmt.Sprintf("Erro ao buscar preço do produto %s", idProduto), err)
+		return fmt.Errorf("erro ao buscar preço do produto: %w", err)
+	}
+
+	p.logger.RegistrarInfo("webhook", fmt.Sprintf("Produto %s - Preço encontrado: %.2f", idProduto, excecao.Preco))
+
+	// Processa o produto usando a mesma lógica do processamento em lote
+	return p.processarProduto(idProduto, *excecao)
+}
+
+// processarProduto contém a lógica de processamento de um produto (extraída para reutilização)
+func (p *ProcessadorTiny) processarProduto(idProduto string, excecao dto.ProdutoExcecaoListaPrecoTiny) error {
+	produtoCompleto := ProdutoCompleto{
+		Excecao: excecao,
+	}
+
+	// Busca dados do produto
+	produto, errProduto := p.client.BuscarDadosProduto(idProduto)
+	if errProduto != nil {
+		p.logger.RegistrarErro("processador",
+			fmt.Sprintf("Erro ao buscar dados do produto %s", idProduto),
+			errProduto,
+		)
+		return fmt.Errorf("erro ao buscar dados do produto: %w", errProduto)
+	}
+
+	// Validação: Processar somente produtos ativos (situação "A")
+	if produto.Situacao != "A" {
+		p.logger.RegistrarInfo("processador",
+			fmt.Sprintf("Produto %s - '%s' com situação '%s' (inativo), não será processado",
+				idProduto, produto.Nome, produto.Situacao,
+			),
+		)
+		return fmt.Errorf("produto inativo (situação: %s)", produto.Situacao)
+	}
+
+	// Validação: Se produto não for FUNKO ou BLOKEES, não criar
+	nomeUpper := strings.ToUpper(produto.Nome)
+	isFunko := strings.Contains(nomeUpper, "FUNKO")
+	isBlokees := strings.Contains(nomeUpper, "BLOKEES")
+
+	if !isFunko && !isBlokees {
+		p.logger.RegistrarInfo("processador",
+			fmt.Sprintf("Produto %s - '%s' não é FUNKO/BLOKEES, não será processado",
+				idProduto, produto.Nome,
+			),
+		)
+		return fmt.Errorf("produto não é FUNKO/BLOKEES")
+	}
+
+	produtoCompleto.Produto = produto
+
+	// Processa a categoria do produto
+	if produto.Categoria != "" {
+		categoria, errCategoria := p.categoryRepo.ProcessarCategoriaTiny(produto.Categoria)
+		if errCategoria != nil {
+			p.logger.RegistrarErro("processador",
+				fmt.Sprintf("Erro ao processar categoria '%s' do produto %s", produto.Categoria, idProduto),
+				errCategoria,
+			)
+		} else {
+			produtoCompleto.Categoria = categoria
+			p.logger.RegistrarInfo("processador",
+				fmt.Sprintf("Categoria processada: %s (ID: %d)", categoria.Name, categoria.ID),
+			)
+		}
+	}
+
+	// Busca estoque do produto
+	estoque, errEstoque := p.client.BuscarEstoqueProduto(idProduto)
+	if errEstoque != nil {
+		p.logger.RegistrarErro("processador",
+			fmt.Sprintf("Erro ao buscar estoque do produto %s", idProduto),
+			errEstoque,
+		)
+		return fmt.Errorf("erro ao buscar estoque: %w", errEstoque)
+	}
+
+	produtoCompleto.Estoque = estoque
+
+	// Calcula estoque disponível para Nerdrop
+	saldo := estoque.SaldoDisponivel
+	saldoReservado := estoque.SaldoReservado
+	estoqueCalculado := saldo - saldoReservado - DecreaseStock
+
+	if estoqueCalculado < 0 {
+		estoqueCalculado = 0
+	}
+
+	produtoCompleto.EstoqueCalculado = estoqueCalculado
+
+	// Registra log do cálculo de estoque
+	p.logger.RegistrarChamada(logger.EntradaLog{
+		Servico:       "nerdrop",
+		Operacao:      "CalculoEstoqueNerdrop",
+		ProdutoTinyID: idProduto,
+		SKU:           produto.Codigo,
+		Resposta: map[string]interface{}{
+			"id_produto_tiny":   idProduto,
+			"sku":               produto.Codigo,
+			"saldo_tiny":        saldo,
+			"saldo_reservado":   saldoReservado,
+			"decrease_stock":    DecreaseStock,
+			"estoque_calculado": estoqueCalculado,
+			"formula":           "saldo - saldo_reservado - decrease_stock",
+		},
+	})
+
+	p.logger.RegistrarInfo("processador",
+		fmt.Sprintf("Produto %s - Estoque calculado: %.0f (Saldo: %.0f, Reservado: %.0f, Decrease: %d)",
+			idProduto, estoqueCalculado, saldo, saldoReservado, DecreaseStock,
+		),
+	)
+
+	// Busca produto no banco pelo SKU
+	if produto.Codigo != "" {
+		dropProduct, errDrop := p.productRepo.BuscarPorSKU(produto.Codigo)
+		if errDrop == nil && dropProduct != nil {
+			produtoCompleto.ProdutoNerdrop = dropProduct
+			p.logger.RegistrarInfo("processador",
+				fmt.Sprintf("Produto encontrado no banco: SKU %s (ID: %d)", produto.Codigo, dropProduct.ID),
+			)
+		} else {
+			p.logger.RegistrarInfo("processador",
+				fmt.Sprintf("Produto não encontrado no banco: SKU %s - Será criado novo", produto.Codigo),
+			)
+		}
+	}
+
+	// Calcula o preço do produto
+	var precoFinal float64
+	var temPromocaoAtiva bool
+
+	// Verifica se o produto tem promoção ativa
+	if produtoCompleto.ProdutoNerdrop != nil && produtoCompleto.ProdutoNerdrop.ID > 0 {
+		temPromocao, errPromocao := p.productPromotionRepo.VerificarPromocaoAtiva(produtoCompleto.ProdutoNerdrop.ID)
+		if errPromocao == nil {
+			temPromocaoAtiva = temPromocao
+		}
+	}
+
+	// Se não tiver promoção ativa, calcula o novo preço
+	if !temPromocaoAtiva {
+		precoFinal = excecao.Preco + MaintenancePrice
+
+		p.logger.RegistrarChamada(logger.EntradaLog{
+			Servico:       "nerdrop",
+			Operacao:      "CalculoPrecoNerdrop",
+			ProdutoTinyID: idProduto,
+			SKU:           produto.Codigo,
+			Resposta: map[string]interface{}{
+				"id_produto_tiny":  idProduto,
+				"sku":              produto.Codigo,
+				"preco_tiny":       excecao.Preco,
+				"valor_manutencao": MaintenancePrice,
+				"preco_calculado":  precoFinal,
+				"formula":          "preco_tiny + valor_manutencao",
+			},
+		})
+
+		p.logger.RegistrarInfo("processador",
+			fmt.Sprintf("Produto %s - Preço Tiny: %.2f + Manutenção: %.2f = Total: %.2f",
+				idProduto, excecao.Preco, MaintenancePrice, precoFinal),
+		)
+	} else {
+		p.logger.RegistrarInfo("processador",
+			fmt.Sprintf("Produto %s - Tem promoção ativa, preço não será atualizado", idProduto),
+		)
+		if produtoCompleto.ProdutoNerdrop != nil && produtoCompleto.ProdutoNerdrop.Price.Valid {
+			precoFinal = produtoCompleto.ProdutoNerdrop.Price.Float64
+		}
+	}
+
+	// Prepara parâmetros do produto
+	produtoParams := p.prepararParametrosProduto(produto, produtoCompleto.Categoria, estoqueCalculado, precoFinal, idProduto)
+	produtoCompleto.ProdutoParams = produtoParams
+
+	// Registra log com os dados do produto preparados
+	produtoJSON, _ := json.Marshal(produtoParams)
+	var produtoMap map[string]interface{}
+	json.Unmarshal(produtoJSON, &produtoMap)
+
+	p.logger.RegistrarChamada(logger.EntradaLog{
+		Servico:       "nerdrop",
+		Operacao:      "DadosProdutoNerdrop",
+		ProdutoTinyID: idProduto,
+		SKU:           produto.Codigo,
+		Resposta:      produtoMap,
+	})
+
+	// Verifica se produto já existe
+	fmt.Printf("\n═══════════════════════════════════════════════════════════\n")
+	fmt.Printf("🔍 VERIFICANDO PRODUTO - SKU: %s (ID Tiny: %s)\n", produto.Codigo, idProduto)
+	produtoExistente, errBusca := p.productRepo.BuscarPorSKU(produto.Codigo)
+
+	if errBusca != nil {
+		fmt.Printf("❌ ERRO ao buscar produto: %v\n", errBusca)
+		fmt.Printf("⚠️  Abortando para evitar duplicata\n")
+		fmt.Printf("═══════════════════════════════════════════════════════════\n\n")
+		return fmt.Errorf("erro ao buscar produto: %w", errBusca)
+	}
+
+	isNovo := produtoExistente == nil
+
+	// Salva ou atualiza o produto
+	if isNovo {
+		fmt.Printf("💾 CRIANDO novo produto (SKU: %s)\n", produto.Codigo)
+	} else {
+		fmt.Printf("🔄 ATUALIZANDO produto existente (ID: %d, SKU: %s)\n", produtoExistente.ID, produto.Codigo)
+	}
+
+	produtoSalvo, errSalvar := p.productRepo.CriarOuAtualizar(produto.Codigo, produtoParams)
+	if errSalvar != nil {
+		p.logger.RegistrarErro("processador",
+			fmt.Sprintf("Erro ao salvar produto %s (SKU: %s)", idProduto, produto.Codigo),
+			errSalvar,
+		)
+		fmt.Printf("❌ ERRO ao salvar: %v\n", errSalvar)
+		fmt.Printf("═══════════════════════════════════════════════════════════\n\n")
+		return errSalvar
+	}
+
+	produtoCompleto.ProdutoNerdrop = produtoSalvo
+
+	if isNovo {
+		p.logger.RegistrarInfo("processador",
+			fmt.Sprintf("Produto criado com sucesso: ID %d, SKU %s", produtoSalvo.ID, produto.Codigo),
+		)
+		fmt.Printf("✅ SUCESSO - Produto CRIADO: ID %d, SKU %s, Nome: %s\n", produtoSalvo.ID, produto.Codigo, produto.Nome)
+		fmt.Printf("═══════════════════════════════════════════════════════════\n\n")
+	} else {
+		p.logger.RegistrarInfo("processador",
+			fmt.Sprintf("Produto atualizado com sucesso: ID %d, SKU %s", produtoSalvo.ID, produto.Codigo),
+		)
+		fmt.Printf("✅ SUCESSO - Produto ATUALIZADO: ID %d, SKU %s, Nome: %s\n", produtoSalvo.ID, produto.Codigo, produto.Nome)
+		fmt.Printf("═══════════════════════════════════════════════════════════\n\n")
+	}
+
+	// Deleta e salva imagens
+	if err := p.productImageRepo.DeletarPorProdutoID(produtoSalvo.ID); err != nil {
+		p.logger.RegistrarErro("processador",
+			fmt.Sprintf("Erro ao deletar imagens antigas do produto %d", produtoSalvo.ID),
+			err,
+		)
+		fmt.Printf("   ⚠️  Erro ao deletar imagens antigas do produto %d\n", produtoSalvo.ID)
+	}
+
+	if len(produto.Anexos) > 0 {
+		for _, anexo := range produto.Anexos {
+			img := &models.ProductImage{
+				ImageType: 0,
+				ImageSrc:  anexo.URL,
+				ProductID: produtoSalvo.ID,
+			}
+
+			if err := p.productImageRepo.Criar(img); err != nil {
+				p.logger.RegistrarErro("processador",
+					fmt.Sprintf("Erro ao criar imagem para produto %d: %s", produtoSalvo.ID, anexo.URL),
+					err,
+				)
+			}
+		}
+
+		p.logger.RegistrarInfo("processador",
+			fmt.Sprintf("Produto %d - %d imagens salvas", produtoSalvo.ID, len(produto.Anexos)),
+		)
+		fmt.Printf("   📸 %d imagens salvas para produto %d\n", len(produto.Anexos), produtoSalvo.ID)
+	}
+
+	// Sincroniza com Trovata ANTES do Bling (assíncrono para não bloquear)
+	if p.processadorTrovata != nil {
+		go func(prod *models.Product, cat *models.Category, sku, idTiny string) {
+			fmt.Printf("\n   🔄 Sincronizando com Trovata (async)...\n")
+			if err := p.processadorTrovata.SincronizarProduto(prod, cat, sku, idTiny); err != nil {
+				p.logger.RegistrarErro("processador",
+					fmt.Sprintf("Erro ao sincronizar produto %d com Trovata", prod.ID),
+					err,
+				)
+				fmt.Printf("   ⚠️  Erro na sincronização Trovata: %v\n", err)
+			} else {
+				p.logger.RegistrarInfo("processador",
+					fmt.Sprintf("Produto %d sincronizado com Trovata", prod.ID),
+				)
+				fmt.Printf("   ✅ Produto sincronizado com Trovata\n")
+			}
+		}(produtoSalvo, produtoCompleto.Categoria, produto.Codigo, idProduto)
+	}
+
+	// Sincroniza com Bling
+	if p.processadorBling != nil {
+		if err := p.processadorBling.SincronizarProduto(produtoSalvo, produto.Codigo); err != nil {
+			p.logger.RegistrarErro("processador",
+				fmt.Sprintf("Erro ao sincronizar produto %d com Bling", produtoSalvo.ID),
+				err,
+			)
+			fmt.Printf("   ⚠️  Erro na sincronização Bling: %v\n", err)
+		}
+	}
+
+	p.logger.RegistrarInfo("webhook", fmt.Sprintf("=== PRODUTO %s PROCESSADO COM SUCESSO ===", idProduto))
+	return nil
 }
 
 // prepararParametrosProduto prepara os parâmetros do produto para salvar no banco

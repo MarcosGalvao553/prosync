@@ -18,12 +18,13 @@ const (
 	TipoLogBling TipoLog = "bling"
 )
 
+// EntradaLog representa uma entrada de log estruturada
 type EntradaLog struct {
 	Timestamp       time.Time              `json:"timestamp"`
 	Servico         string                 `json:"servico"`
 	Operacao        string                 `json:"operacao"`
-	Requisicao      map[string]interface{} `json:"requisicao"`
-	Resposta        map[string]interface{} `json:"resposta"`
+	Requisicao      interface{}            `json:"requisicao"`
+	Resposta        interface{}            `json:"resposta"`
 	StatusCode      int                    `json:"status_code,omitempty"`
 	Erro            string                 `json:"erro,omitempty"`
 	Duracao         string                 `json:"duracao,omitempty"`
@@ -126,27 +127,38 @@ func (l *Logger) salvarNoBanco(entrada EntradaLog) error {
 	status := "OK"
 	if entrada.Erro != "" {
 		status = "Erro"
-	} else if resposta, ok := entrada.Resposta["status"].(string); ok {
-		if resposta == "Erro" {
-			status = "Erro"
+	} else if respostaMap, ok := entrada.Resposta.(map[string]interface{}); ok {
+		if resposta, ok := respostaMap["status"].(string); ok {
+			if resposta == "Erro" {
+				status = "Erro"
+			}
 		}
 	}
 
 	// Extrai código de erro se existir
 	errorCode := ""
-	if resposta, ok := entrada.Resposta["codigo"].(string); ok {
-		errorCode = resposta
-	} else if resposta, ok := entrada.Resposta["codigo"].(float64); ok {
-		errorCode = fmt.Sprintf("%.0f", resposta)
+	if respostaMap, ok := entrada.Resposta.(map[string]interface{}); ok {
+		if resposta, ok := respostaMap["codigo"].(string); ok {
+			errorCode = resposta
+		} else if resposta, ok := respostaMap["codigo"].(float64); ok {
+			errorCode = fmt.Sprintf("%.0f", resposta)
+		}
 	}
 
 	// Extrai produto_tiny_id da requisição ou resposta
 	produtoTinyID := entrada.ProdutoTinyID
 	if produtoTinyID == "" {
-		if id, ok := entrada.Requisicao["id"].(string); ok {
-			produtoTinyID = id
-		} else if id, ok := entrada.Resposta["id_produto"].(string); ok {
-			produtoTinyID = id
+		if requisicaoMap, ok := entrada.Requisicao.(map[string]interface{}); ok {
+			if id, ok := requisicaoMap["id"].(string); ok {
+				produtoTinyID = id
+			}
+		}
+		if produtoTinyID == "" {
+			if respostaMap, ok := entrada.Resposta.(map[string]interface{}); ok {
+				if id, ok := respostaMap["id_produto"].(string); ok {
+					produtoTinyID = id
+				}
+			}
 		}
 	}
 
@@ -256,14 +268,14 @@ func (l *Logger) registrarTexto(nomeArquivo string, entrada EntradaLog) error {
 	}
 
 	// Requisição
-	if len(entrada.Requisicao) > 0 {
+	if entrada.Requisicao != nil {
 		texto += "\n--- REQUISIÇÃO ---\n"
 		reqJSON, _ := marshalIndentJSON(entrada.Requisicao, "", "  ")
 		texto += string(reqJSON) + "\n"
 	}
 
 	// Resposta
-	if len(entrada.Resposta) > 0 {
+	if entrada.Resposta != nil {
 		texto += "\n--- RESPOSTA ---\n"
 		respJSON, _ := marshalIndentJSON(entrada.Resposta, "", "  ")
 		texto += string(respJSON) + "\n"

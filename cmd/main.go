@@ -13,6 +13,7 @@ import (
 	"prosync/internal/comum/servidor"
 	"prosync/internal/tiny/entidade"
 	"prosync/internal/tiny/servico"
+	trovataServico "prosync/internal/trovata/servico"
 )
 
 func main() {
@@ -62,12 +63,19 @@ func main() {
 		logger,
 	)
 
+	// Cria o processador Trovata
+	processadorTrovata := trovataServico.NovoProcessadorTrovata(
+		db,
+		logger,
+	)
+
 	// Cria o processador
-	processador := servico.NovoProcessadorTiny(tinyClient, logger, categoryRepo, productRepo, productPromotionRepo, productImageRepo, processadorBling)
+	processador := servico.NovoProcessadorTiny(tinyClient, logger, categoryRepo, productRepo, productPromotionRepo, productImageRepo, processadorBling, processadorTrovata)
 	fmt.Println("Processador criado")
 
 	// Inicia servidor web em goroutine
-	servidorWeb := servidor.NovoServidorWeb("8080", logger)
+	servidorWeb := servidor.NovoServidorWeb("8000", logger)
+	servidorWeb.SetProcessador(processador) // Configura o processador para receber webhooks
 	go func() {
 		if err := servidorWeb.Iniciar(); err != nil {
 			log.Printf("Erro no servidor web: %v", err)
