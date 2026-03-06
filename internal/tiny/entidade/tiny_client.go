@@ -50,7 +50,6 @@ func (t *TinyClient) BuscarExcecoesListaPreco(pagina int) (*dto.ExcecaoListaPrec
 	formData.Set("token", t.config.TinyBearerToken)
 	formData.Set("idListaPreco", t.config.TinyIdListaPreco)
 	formData.Set("formato", "json")
-	formData.Set("idProduto", "1025799210") // usar productId se fornecido, senao fornecer nao adiciona esse campo
 	if pagina > 0 {
 		formData.Set("pagina", fmt.Sprintf("%d", pagina))
 	}
