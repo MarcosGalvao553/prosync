@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"prosync/internal/comum/config"
@@ -478,21 +480,28 @@ func (t *TinyClient) BuscarPrecoProdutoListaPreco(idListaPreco int, idProduto st
 	// Monta a URL correta
 	urlCompleta := fmt.Sprintf("%s/listas.precos.excecoes.php", t.config.TinyBaseURL)
 
-	// Prepara os dados do formulário
-	formData := url.Values{}
-	formData.Set("token", t.config.TinyBearerToken)
-	formData.Set("idListaPreco", fmt.Sprintf("%d", idListaPreco))
-	formData.Set("idProduto", idProduto)
-	formData.Set("formato", "json")
+	// Cria um buffer para o corpo da requisição multipart
+	var bodyBuffer bytes.Buffer
+	writer := multipart.NewWriter(&bodyBuffer)
+
+	// Adiciona os campos do formulário
+	writer.WriteField("token", t.config.TinyBearerToken)
+	writer.WriteField("idListaPreco", fmt.Sprintf("%d", idListaPreco))
+	writer.WriteField("idProduto", idProduto)
+	writer.WriteField("formato", "json")
+
+	// Fecha o writer para finalizar o multipart
+	contentType := writer.FormDataContentType()
+	writer.Close()
 
 	// Cria a requisição
-	req, err := http.NewRequest("POST", urlCompleta, bytes.NewBufferString(formData.Encode()))
+	req, err := http.NewRequest("POST", urlCompleta, &bodyBuffer)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao criar requisição: %w", err)
 	}
 
-	// Define os headers
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	// Define os headers (usa o Content-Type retornado pelo multipart.Writer)
+	req.Header.Set("Content-Type", contentType)
 
 	// Prepara dados para log (sem expor o token completo)
 	dadosRequisicao := map[string]interface{}{
@@ -614,7 +623,21 @@ func (t *TinyClient) BuscarPrecoProdutoListaPreco(idListaPreco int, idProduto st
 		return nil, fmt.Errorf("produto sem preço definido na lista de preços")
 	}
 
-	// Retorna o primeiro registro encontrado
-	precoTiny := resposta.Retorno.Registros[0].Registro.ParaProdutoExcecaoListaPrecoTiny()
+	// Com multipart/form-data, a API agora retorna apenas o produto específico
+	// Mas vamos validar para garantir que é o produto correto
+	idProdutoInt, err := strconv.ParseInt(idProduto, 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("ID do produto inválido: %w", err)
+	}
+
+	// Pega o primeiro registro (que deve ser o único com multipart/form-data)
+	primeiroRegistro := resposta.Retorno.Registros[0].Registro
+
+	// Valida se é realmente o produto solicitado
+	if primeiroRegistro.IdProduto != idProdutoInt {
+		return nil, fmt.Errorf("API retornou produto %d diferente do solicitado %s", primeiroRegistro.IdProduto, idProduto)
+	}
+
+	precoTiny := primeiroRegistro.ParaProdutoExcecaoListaPrecoTiny()
 	return &precoTiny, nil
 }
