@@ -75,7 +75,8 @@ func main() {
 
 	// Inicia servidor web em goroutine
 	servidorWeb := servidor.NovoServidorWeb("8080", logger)
-	servidorWeb.SetProcessador(processador) // Configura o processador para receber webhooks
+	servidorWeb.SetProcessador(processador)           // Configura o processador para receber webhooks
+	servidorWeb.SetProcessadorBling(processadorBling) // Configura o processador Bling
 	go func() {
 		if err := servidorWeb.Iniciar(); err != nil {
 			log.Printf("Erro no servidor web: %v", err)
