@@ -100,8 +100,94 @@ func (p *ProcessadorBling) SincronizarProduto(produto *models.Product, sku strin
 	return nil
 }
 
+// SincronizarProdutoParaUsuario sincroniza um produto específico com o Bling para um usuário específico
+func (p *ProcessadorBling) SincronizarProdutoParaUsuario(productID uint64, userID uint64) error {
+	fmt.Printf("\n🔄 Iniciando sincronização Bling para produto ID %d e usuário ID %d\n", productID, userID)
+
+	fmt.Printf("   📂 Criando repositório de produtos...\n")
+	// Busca o produto no banco
+	productRepo := repositories.NovoProductRepository(p.db)
+
+	fmt.Printf("   🔍 Buscando produto %d no banco de dados...\n", productID)
+	produto, err := productRepo.BuscarPorID(int(productID))
+	if err != nil {
+		fmt.Printf("   ❌ Erro ao buscar produto: %v\n", err)
+		return fmt.Errorf("erro ao buscar produto: %w", err)
+	}
+
+	if produto == nil {
+		fmt.Printf("   ❌ Produto %d não encontrado\n", productID)
+		return fmt.Errorf("produto %d não encontrado", productID)
+	}
+
+	fmt.Printf("   ✅ Produto encontrado: %s (SKU: %s)\n", produto.Name, produto.SKU.String)
+
+	// Validação: Processar somente produtos ativos
+	if !produto.IsEnabled {
+		fmt.Printf("   ℹ️  Produto %d está inativo - pulando sincronização Bling\n", produto.ID)
+		p.logger.RegistrarInfo("bling",
+			fmt.Sprintf("Produto %d está inativo - sincronização ignorada", produto.ID),
+		)
+		return fmt.Errorf("produto %d está inativo", produto.ID)
+	}
+
+	fmt.Printf("   ✅ Produto está ativo\n")
+	fmt.Printf("   🔍 Buscando vinculação product_user (product_id=%d, user_id=%d)...\n", productID, userID)
+
+	// Busca o product_user específico
+	pu, err := p.productUserRepo.BuscarPorUserIDEProductID(int(userID), int(productID))
+	if err != nil {
+		fmt.Printf("   ❌ Erro ao buscar product_user: %v\n", err)
+		return fmt.Errorf("erro ao buscar product_user: %w", err)
+	}
+
+	// Se não existe, cria a vinculação
+	if pu == nil {
+		fmt.Printf("   ℹ️  Vinculação não encontrada. Criando nova vinculação...\n")
+		pu, err = p.productUserRepo.Criar(int(userID), int(productID))
+		if err != nil {
+			fmt.Printf("   ❌ Erro ao criar product_user: %v\n", err)
+			return fmt.Errorf("erro ao criar product_user: %w", err)
+		}
+		fmt.Printf("   ✅ Vinculação criada com sucesso (ID: %d)\n", pu.ID)
+	} else {
+		fmt.Printf("   ✅ Vinculação encontrada (ID: %d)\n", pu.ID)
+	}
+
+	// Define o SKU
+	sku := produto.SKU.String
+	if sku == "" {
+		sku = fmt.Sprintf("%d", produto.ID)
+	}
+
+	fmt.Printf("   📦 SKU definido: %s\n", sku)
+	fmt.Printf("   🚀 Iniciando processamento...\n")
+
+	// Processa o product_user
+	if err := p.processarProductUser(produto, sku, pu); err != nil {
+		// Verifica se é erro de rate limit
+		if isRateLimitError(err) {
+			fmt.Printf("   ⏱️  Rate limit detectado - produto adicionado à fila de retry\n")
+			p.adicionarNaFilaRateLimit(produto, sku)
+			return nil // Não retorna erro, será reprocessado
+		}
+
+		p.logger.RegistrarErro("bling",
+			fmt.Sprintf("Erro ao processar Bling para user_id %d, product_id %d", userID, productID),
+			err,
+		)
+		fmt.Printf("   ❌ Erro ao processar: %v\n", err)
+		return fmt.Errorf("erro ao processar no Bling: %w", err)
+	}
+
+	fmt.Printf("   ✅ Produto %d sincronizado com sucesso para usuário %d\n", productID, userID)
+	return nil
+}
+
 // processarProductUser processa a sincronização para um usuário específico
 func (p *ProcessadorBling) processarProductUser(produto *models.Product, sku string, pu *models.ProductUser) error {
+	fmt.Printf("   🔍 Buscando configuração Bling para usuário %d...\n", pu.UserID)
+
 	// Busca configuração do Bling para este usuário
 	config, err := p.blingConfigRepo.BuscarPorUserID(pu.UserID)
 	if err != nil {
@@ -113,6 +199,8 @@ func (p *ProcessadorBling) processarProductUser(produto *models.Product, sku str
 		return nil
 	}
 
+	fmt.Printf("   ✅ Configuração Bling encontrada para usuário %d\n", pu.UserID)
+
 	// Cria cliente Bling
 	client := blingEntidade.NovoBlingClient(
 		config.ClientID.String,
@@ -121,10 +209,16 @@ func (p *ProcessadorBling) processarProductUser(produto *models.Product, sku str
 		p.logger,
 	)
 
+	fmt.Printf("   🔑 Validando token do Bling...\n")
+
 	// Valida e atualiza token se necessário
 	if err := p.validarEAtualizarToken(client, config); err != nil {
 		return fmt.Errorf("erro ao validar token: %w", err)
 	}
+
+	fmt.Printf("   ✅ Token validado\n")
+
+	fmt.Printf("   📸 Buscando imagens do produto...\n")
 
 	// Busca imagens do produto
 	imagens, err := p.productImageRepo.ListarPorProdutoID(produto.ID)
@@ -136,6 +230,9 @@ func (p *ProcessadorBling) processarProductUser(produto *models.Product, sku str
 		imagens = []models.ProductImage{} // Continua sem imagens
 	}
 
+	fmt.Printf("   📸 %d imagem(ns) encontrada(s)\n", len(imagens))
+	fmt.Printf("   🔍 Buscando produto no Bling (SKU: %s)...\n", sku)
+
 	// Busca produto no Bling pelo código/SKU
 	produtoBling, err := p.buscarProdutoBling(client, sku, pu)
 	if err != nil {
@@ -145,6 +242,8 @@ func (p *ProcessadorBling) processarProductUser(produto *models.Product, sku str
 	var blingProductID int64
 
 	if produtoBling != nil {
+		fmt.Printf("   ✅ Produto encontrado no Bling (ID: %d). Atualizando...\n", produtoBling.ID)
+
 		// Produto existe - atualizar
 		blingProductID = produtoBling.ID
 		if err := p.atualizarProdutoBling(client, produtoBling.ID, produto, imagens, pu, sku); err != nil {
@@ -163,6 +262,8 @@ func (p *ProcessadorBling) processarProductUser(produto *models.Product, sku str
 
 		fmt.Printf("   ✅ Produto atualizado no Bling (user %d, bling_id %d)\n", pu.UserID, produtoBling.ID)
 	} else {
+		fmt.Printf("   ℹ️  Produto não existe no Bling. Criando novo...\n")
+
 		// Produto não existe - criar
 		novoProduto, err := p.criarProdutoBling(client, produto, imagens, pu, sku)
 		if err != nil {
@@ -180,6 +281,8 @@ func (p *ProcessadorBling) processarProductUser(produto *models.Product, sku str
 
 		fmt.Printf("   ✅ Produto criado no Bling (user %d, bling_id %d)\n", pu.UserID, blingProductID)
 	}
+
+	fmt.Printf("   📦 Atualizando estoque no Bling...\n")
 
 	// Atualiza estoque no Bling
 	if err := p.atualizarEstoqueBling(client, blingProductID, produto, pu); err != nil {

@@ -51,21 +51,34 @@ func (r *ProductImageRepository) ListarPorProdutoID(productID int) ([]models.Pro
 		WHERE product_id = ?
 	`
 
+	fmt.Printf("      🔍 Executando query de imagens para product_id=%d\n", productID)
+
 	rows, err := r.db.Query(query, productID)
 	if err != nil {
+		fmt.Printf("      ❌ Erro na query: %v\n", err)
 		return nil, fmt.Errorf("erro ao listar imagens: %w", err)
 	}
 	defer rows.Close()
 
 	imagens := []models.ProductImage{}
+	count := 0
 	for rows.Next() {
 		var img models.ProductImage
 		err := rows.Scan(&img.ID, &img.ImageType, &img.ImageSrc, &img.ProductID, &img.ImageSrcSmall)
 		if err != nil {
+			fmt.Printf("      ❌ Erro ao ler linha: %v\n", err)
 			return nil, fmt.Errorf("erro ao ler imagem: %w", err)
 		}
+		count++
+		fmt.Printf("      📷 Imagem %d: ID=%d, URL=%s\n", count, img.ID, img.ImageSrc)
 		imagens = append(imagens, img)
 	}
 
+	if err := rows.Err(); err != nil {
+		fmt.Printf("      ❌ Erro após iterar rows: %v\n", err)
+		return nil, fmt.Errorf("erro ao iterar imagens: %w", err)
+	}
+
+	fmt.Printf("      ✅ Total de %d imagem(ns) encontrada(s)\n", len(imagens))
 	return imagens, nil
 }

@@ -90,3 +90,19 @@ func (r *ProductUserRepository) BuscarPorUserIDEProductID(userID, productID int)
 
 	return &pu, nil
 }
+
+// Criar cria um novo registro de product_user
+func (r *ProductUserRepository) Criar(userID, productID int) (*models.ProductUser, error) {
+	query := `
+		INSERT INTO product_users (user_id, product_id, created_at, updated_at)
+		VALUES (?, ?, NOW(), NOW())
+	`
+
+	_, err := r.db.Exec(query, userID, productID)
+	if err != nil {
+		return nil, fmt.Errorf("erro ao criar product_user: %w", err)
+	}
+
+	// Busca o registro recém-criado
+	return r.BuscarPorUserIDEProductID(userID, productID)
+}

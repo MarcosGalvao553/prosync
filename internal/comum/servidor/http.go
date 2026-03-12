@@ -18,11 +18,17 @@ type ProcessadorInterface interface {
 	ProcessarProdutoEspecifico(idProduto string) error
 }
 
+// ProcessadorBlingInterface define a interface para processar produtos no Bling
+type ProcessadorBlingInterface interface {
+	SincronizarProdutoParaUsuario(productID uint64, userID uint64) error
+}
+
 // ServidorWeb gerencia o servidor HTTP
 type ServidorWeb struct {
-	porta       string
-	logger      *logger.Logger
-	processador ProcessadorInterface
+	porta            string
+	logger           *logger.Logger
+	processador      ProcessadorInterface
+	processadorBling ProcessadorBlingInterface
 }
 
 // NovoServidorWeb cria uma nova instância do servidor
@@ -38,6 +44,11 @@ func (s *ServidorWeb) SetProcessador(processador ProcessadorInterface) {
 	s.processador = processador
 }
 
+// SetProcessadorBling define o processador Bling
+func (s *ServidorWeb) SetProcessadorBling(processadorBling ProcessadorBlingInterface) {
+	s.processadorBling = processadorBling
+}
+
 // Iniciar inicia o servidor HTTP
 func (s *ServidorWeb) Iniciar() error {
 	// Serve arquivos estáticos da pasta web
@@ -51,6 +62,7 @@ func (s *ServidorWeb) Iniciar() error {
 	http.HandleFunc("/api/users", s.handlerUsers)
 	http.HandleFunc("/api/health", s.handlerHealth)
 	http.HandleFunc("/api/process-product", s.handlerProcessProduct)
+	http.HandleFunc("/api/create-bling-product", s.handlerCreateBlingProduct)
 
 	endereco := fmt.Sprintf(":%s", s.porta)
 	log.Printf("🌐 Servidor web iniciado em http://localhost%s", endereco)
@@ -289,5 +301,88 @@ func (s *ServidorWeb) handlerProcessProduct(w http.ResponseWriter, r *http.Reque
 		"success": true,
 		"message": fmt.Sprintf("Produto %s adicionado à fila de processamento", idProduto),
 		"id":      idProduto,
+	})
+}
+
+// handlerCreateBlingProduct cria um produto no Bling para um usuário específico
+func (s *ServidorWeb) handlerCreateBlingProduct(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+
+	// Apenas POST é permitido
+	if r.Method != http.MethodPost {
+		http.Error(w, "Método não permitido", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Verifica se o processador Bling está configurado
+	if s.processadorBling == nil {
+		http.Error(w, "Processador Bling não configurado", http.StatusInternalServerError)
+		return
+	}
+
+	// Lê o body da requisição
+	bodyBytes, err := io.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Erro ao ler body da requisição", http.StatusBadRequest)
+		return
+	}
+	defer r.Body.Close()
+
+	// Parse do JSON
+	var requestData struct {
+		ProductID uint64 `json:"product_id"`
+		UserID    uint64 `json:"user_id"`
+	}
+
+	if err := json.Unmarshal(bodyBytes, &requestData); err != nil {
+		http.Error(w, "JSON inválido", http.StatusBadRequest)
+		return
+	}
+
+	// Valida os parâmetros
+	if requestData.ProductID == 0 {
+		http.Error(w, "product_id é obrigatório", http.StatusBadRequest)
+		return
+	}
+
+	if requestData.UserID == 0 {
+		http.Error(w, "user_id é obrigatório", http.StatusBadRequest)
+		return
+	}
+
+	// Registra a requisição no log
+	s.logger.RegistrarChamada(logger.EntradaLog{
+		Servico:    "bling",
+		Operacao:   "RequisicaoCriarProdutoBling",
+		UserID:     requestData.UserID,
+		Requisicao: requestData,
+		MetodoHTTP: r.Method,
+		URL:        r.URL.String(),
+	})
+
+	s.logger.RegistrarInfo("api", fmt.Sprintf("Requisição para criar produto %d no Bling do usuário %d", requestData.ProductID, requestData.UserID))
+
+	// Processa em BACKGROUND (não bloqueia a resposta)
+	// Responde imediatamente e processa de forma assíncrona
+	go func() {
+		if err := s.processadorBling.SincronizarProdutoParaUsuario(requestData.ProductID, requestData.UserID); err != nil {
+			s.logger.RegistrarErro("bling",
+				fmt.Sprintf("Erro ao criar produto %d no Bling para usuário %d", requestData.ProductID, requestData.UserID),
+				err,
+			)
+		} else {
+			s.logger.RegistrarInfo("bling",
+				fmt.Sprintf("Produto %d criado/atualizado com sucesso no Bling para usuário %d", requestData.ProductID, requestData.UserID),
+			)
+		}
+	}()
+
+	// Retorna sucesso IMEDIATAMENTE
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"success":    true,
+		"message":    fmt.Sprintf("Produto %d adicionado à fila de processamento do Bling para usuário %d", requestData.ProductID, requestData.UserID),
+		"product_id": requestData.ProductID,
+		"user_id":    requestData.UserID,
 	})
 }

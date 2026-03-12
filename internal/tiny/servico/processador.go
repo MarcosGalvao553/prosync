@@ -331,7 +331,7 @@ func (p *ProcessadorTiny) ProcessarExcecoesListaPreco() ([]ProdutoCompleto, erro
 				if len(produto.Anexos) > 0 {
 					for _, anexo := range produto.Anexos {
 						img := &models.ProductImage{
-							ImageType: 0,
+							ImageType: sql.NullInt64{Int64: 0, Valid: true},
 							ImageSrc:  anexo.URL,
 							ProductID: produtoSalvo.ID,
 						}
@@ -662,7 +662,7 @@ func (p *ProcessadorTiny) processarProduto(idProduto string, excecao dto.Produto
 	if len(produto.Anexos) > 0 {
 		for _, anexo := range produto.Anexos {
 			img := &models.ProductImage{
-				ImageType: 0,
+				ImageType: sql.NullInt64{Int64: 0, Valid: true},
 				ImageSrc:  anexo.URL,
 				ProductID: produtoSalvo.ID,
 			}
