@@ -79,6 +79,9 @@ func (p *ProcessadorTiny) ProcessarExcecoesListaPreco() ([]ProdutoCompleto, erro
 	// Passo 2: Para cada exceção, buscar dados e estoque do produto
 	produtosCompletos := make([]ProdutoCompleto, 0, len(excecoes))
 
+	// Array para acumular produtos que serão enviados para Trovata em lote
+	var produtosParaTrovata []trovataServico.ProdutoParaSincronizar
+
 	for i, excecao := range excecoes {
 		idProduto := strconv.FormatInt(excecao.IdProduto, 10)
 
@@ -347,25 +350,19 @@ func (p *ProcessadorTiny) ProcessarExcecoesListaPreco() ([]ProdutoCompleto, erro
 					fmt.Printf("   📸 %d imagens salvas para produto %d\n", len(produto.Anexos), produtoSalvo.ID)
 				}
 
-				// Sincroniza com Trovata ANTES do Bling (assíncrono para não bloquear)
+				// Acumula produto para sincronização em lote com Trovata
 				if p.processadorTrovata != nil {
-					go func(prod *models.Product, cat *models.Category, sku, idTiny string) {
-						fmt.Printf("\n   🔄 Sincronizando com Trovata (async)...\n")
-						if err := p.processadorTrovata.SincronizarProduto(prod, cat, sku, idTiny); err != nil {
-							p.logger.RegistrarErro("processador",
-								fmt.Sprintf("Erro ao sincronizar produto %d com Trovata", prod.ID),
-								err,
-							)
-							fmt.Printf("   ⚠️  Erro na sincronização Trovata: %v\n", err)
-						} else {
-							p.logger.RegistrarInfo("processador",
-								fmt.Sprintf("Produto %d sincronizado com Trovata", prod.ID),
-							)
-							fmt.Printf("   ✅ Produto sincronizado com Trovata\n")
-						}
-					}(produtoSalvo, produtoCompleto.Categoria, produto.Codigo, idProduto)
+					produtosParaTrovata = append(produtosParaTrovata, trovataServico.ProdutoParaSincronizar{
+						Produto:       produtoSalvo,
+						Categoria:     produtoCompleto.Categoria,
+						SKU:           produto.Codigo,
+						IdProdutoTiny: idProduto,
+					})
+					p.logger.RegistrarInfo("processador",
+						fmt.Sprintf("Produto %d adicionado ao lote para sincronização com Trovata (%d/%d)",
+							produtoSalvo.ID, len(produtosParaTrovata), len(excecoes)),
+					)
 				}
-
 				// Sincroniza com Bling (se processadorBling estiver configurado)
 				if p.processadorBling != nil {
 					if err := p.processadorBling.SincronizarProduto(produtoSalvo, produto.Codigo); err != nil {
@@ -380,6 +377,23 @@ func (p *ProcessadorTiny) ProcessarExcecoesListaPreco() ([]ProdutoCompleto, erro
 		}
 
 		produtosCompletos = append(produtosCompletos, produtoCompleto)
+	}
+
+	// Sincroniza todos os produtos em lote com Trovata
+	if p.processadorTrovata != nil && len(produtosParaTrovata) > 0 {
+		fmt.Printf("\n╔════════════════════════════════════════════════════════════╗\n")
+		fmt.Printf("║ 🔄 SINCRONIZANDO %d PRODUTOS COM TROVATA (LOTE)\n", len(produtosParaTrovata))
+		fmt.Printf("╚════════════════════════════════════════════════════════════╝\n")
+
+		if err := p.processadorTrovata.SincronizarProdutos(produtosParaTrovata); err != nil {
+			p.logger.RegistrarErro("processador",
+				fmt.Sprintf("Erro ao sincronizar lote de %d produtos com Trovata", len(produtosParaTrovata)),
+				err,
+			)
+			fmt.Printf("❌ ERRO na sincronização em lote com Trovata: %v\n\n", err)
+		} else {
+			fmt.Printf("✅ SUCESSO - %d produtos sincronizados com Trovata\n\n", len(produtosParaTrovata))
+		}
 	}
 
 	p.logger.RegistrarInfo("processador", fmt.Sprintf(

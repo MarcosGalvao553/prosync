@@ -205,3 +205,131 @@ func obterSituacao(isEnabled bool) string {
 	}
 	return "I"
 }
+
+// ProdutoParaSincronizar contém os dados necessários para sincronizar um produto
+type ProdutoParaSincronizar struct {
+	Produto       *models.Product
+	Categoria     *models.Category
+	SKU           string
+	IdProdutoTiny string
+}
+
+// SincronizarProdutos sincroniza múltiplos produtos com Trovata em lote
+func (p *ProcessadorTrovata) SincronizarProdutos(produtos []ProdutoParaSincronizar) error {
+	if len(produtos) == 0 {
+		p.logger.RegistrarInfo("trovata", "Nenhum produto para sincronizar com Trovata")
+		return nil
+	}
+
+	p.logger.RegistrarInfo("trovata",
+		fmt.Sprintf("Iniciando sincronização em lote de %d produtos com Trovata", len(produtos)),
+	)
+
+	// Busca partner para cálculo de preço
+	partner, err := p.partnerRepo.BuscarPorID(p.partnerID)
+	if err != nil {
+		p.logger.RegistrarErro("trovata",
+			fmt.Sprintf("Erro ao buscar partner %d", p.partnerID),
+			err,
+		)
+		return fmt.Errorf("erro ao buscar partner: %w", err)
+	}
+
+	// Prepara todos os produtos
+	produtoRequests := make([]*dto.ProdutoTrovataRequest, 0, len(produtos))
+	for _, prod := range produtos {
+		request := p.prepararProdutoRequest(prod.Produto, prod.Categoria, partner)
+		produtoRequests = append(produtoRequests, request)
+	}
+
+	// Criar produtos em lote na Trovata
+	if err := p.client.CriarProdutos(produtoRequests); err != nil {
+		return fmt.Errorf("erro ao criar produtos na Trovata: %w", err)
+	}
+
+	// Atualizar estoque de todos os produtos
+	for _, prod := range produtos {
+		if err := p.atualizarEstoque(prod.Produto, prod.SKU, prod.IdProdutoTiny); err != nil {
+			p.logger.RegistrarErro("trovata",
+				fmt.Sprintf("Erro ao atualizar estoque do produto %d (SKU: %s)", prod.Produto.ID, prod.SKU),
+				err,
+			)
+			// Continua processamento mesmo com erro
+		}
+	}
+
+	p.logger.RegistrarInfo("trovata",
+		fmt.Sprintf("%d produtos sincronizados com sucesso na Trovata", len(produtos)),
+	)
+
+	return nil
+}
+
+// prepararProdutoRequest prepara o request de um produto para Trovata
+func (p *ProcessadorTrovata) prepararProdutoRequest(produto *models.Product, categoria *models.Category, partner *models.Partner) *dto.ProdutoTrovataRequest {
+	// Calcula preço usando a mesma lógica do PHP
+	preco := p.calcularPreco(produto.Price.Float64, partner)
+
+	// Monta descrição (limita a 249 caracteres)
+	descricao2 := ""
+	if produto.Description.Valid {
+		desc := produto.Description.String
+		if len(desc) > 249 {
+			descricao2 = desc[:249]
+		} else {
+			descricao2 = desc
+		}
+	}
+
+	// Nome da categoria
+	nomeCategoria := ""
+	if categoria != nil {
+		nomeCategoria = categoria.Name
+	}
+
+	// Monta o request
+	return &dto.ProdutoTrovataRequest{
+		Produto:                 produto.ID,
+		DescricaoProduto:        produto.Name,
+		ApelidoProduto:          obterString(produto.SKU),
+		AbreviaturaUnidade:      nil,
+		GrupoProduto:            nil,
+		SubgrupoProduto:         nil,
+		Situacao:                obterSituacao(produto.IsEnabled),
+		PesoLiquido:             nil,
+		ClassificacaoFiscal:     obterString(produto.NCM),
+		Categoria:               nomeCategoria,
+		PontoCritico:            nil,
+		Grade:                   nil,
+		CodigoBarras:            nil,
+		Especificacao:           nomeCategoria,
+		PrecoBase:               preco,
+		FamiliaComercial:        nil,
+		UnidadeFabricacao:       nil,
+		Especie:                 nil,
+		Segmento:                nil,
+		TipoEmbalagem:           nil,
+		UsoProdutoOpcional:      nil,
+		DescricaoProduto2:       descricao2,
+		DescricaoProduto3:       nil,
+		Marca:                   obterString(produto.Marca),
+		TipoProduto:             nil,
+		EstiloUso:               nil,
+		DimensaoTamanho:         nil,
+		Nicho:                   nil,
+		Linha:                   nil,
+		Genero:                  nil,
+		NCM:                     obterString(produto.NCM),
+		PrecoCusto:              preco,
+		PrecoFinal:              preco,
+		ListaMultiploVenda:      nil,
+		GradePor:                nil,
+		SubstituicaoTributaria:  nil,
+		PercDesconto:            nil,
+		PercDescontoParceria:    nil,
+		PercDescontoGerencial:   nil,
+		PercDescontoPromocional: nil,
+		Colecao:                 nil,
+		ValidaEstoque:           nil,
+	}
+}

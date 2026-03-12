@@ -109,6 +109,86 @@ func (c *TrovataClient) CriarProduto(produto *dto.ProdutoTrovataRequest, sku str
 	return nil
 }
 
+// CriarProdutos envia múltiplos produtos para criar na Trovata em lote
+func (c *TrovataClient) CriarProdutos(produtos []*dto.ProdutoTrovataRequest) error {
+	if len(produtos) == 0 {
+		return nil
+	}
+
+	inicio := time.Now()
+
+	url := fmt.Sprintf("%s/produto/%s/%s", c.baseURL, c.token, c.empresaID)
+
+	// API Trovata já espera array
+	jsonData, err := json.Marshal(produtos)
+	if err != nil {
+		return fmt.Errorf("erro ao serializar produtos: %w", err)
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return fmt.Errorf("erro ao criar requisição: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	// Desserializa para log completo
+	var requisicaoCompleta interface{}
+	json.Unmarshal(jsonData, &requisicaoCompleta)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		duracao := time.Since(inicio)
+		c.logger.RegistrarChamada(logger.EntradaLog{
+			Servico:    "trovata",
+			Operacao:   "CriarProdutosTrovataLote",
+			URL:        url,
+			MetodoHTTP: "POST",
+			Requisicao: requisicaoCompleta,
+			Erro:       err.Error(),
+			Duracao:    duracao.String(),
+			DuracaoMs:  float64(duracao.Milliseconds()),
+		})
+		return fmt.Errorf("erro ao fazer requisição: %w", err)
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("erro ao ler resposta: %w", err)
+	}
+
+	// Parse da resposta
+	var respostaCompleta interface{}
+	json.Unmarshal(bodyBytes, &respostaCompleta)
+
+	duracao := time.Since(inicio)
+	c.logger.RegistrarChamada(logger.EntradaLog{
+		Servico:    "trovata",
+		Operacao:   "CriarProdutosTrovataLote",
+		URL:        url,
+		MetodoHTTP: "POST",
+		Requisicao: map[string]interface{}{
+			"total_produtos": len(produtos),
+			"produtos":       requisicaoCompleta,
+		},
+		StatusCode: resp.StatusCode,
+		Resposta:   respostaCompleta,
+		Duracao:    duracao.String(),
+		DuracaoMs:  float64(duracao.Milliseconds()),
+	})
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return fmt.Errorf("erro HTTP %d ao criar produtos na Trovata", resp.StatusCode)
+	}
+
+	c.logger.RegistrarInfo("trovata",
+		fmt.Sprintf("Lote de %d produtos enviado com sucesso para Trovata", len(produtos)),
+	)
+
+	return nil
+}
+
 // AtualizarEstoque atualiza o estoque de um produto na Trovata
 func (c *TrovataClient) AtualizarEstoque(estoque *dto.EstoqueTrovataRequest, sku string, idProdutoTiny string) error {
 	inicio := time.Now()
