@@ -482,7 +482,7 @@ func (t *TinyClient) BuscarPrecoProdutoListaPreco(idListaPreco int, idProduto st
 	formData := url.Values{}
 	formData.Set("token", t.config.TinyBearerToken)
 	formData.Set("idListaPreco", fmt.Sprintf("%d", idListaPreco))
-	// formData.Set("idProduto", "967618335")
+	formData.Set("idProduto", idProduto)
 	formData.Set("formato", "json")
 
 	// Cria a requisição
