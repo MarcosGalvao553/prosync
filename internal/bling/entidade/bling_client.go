@@ -125,7 +125,23 @@ func (c *BlingClient) doRequest(method, endpoint string, body interface{}, respo
 
 	// Parse da resposta de sucesso
 	if response != nil && resp.StatusCode < 300 {
+		// Se o body está vazio, considera sucesso sem parsing
+		if len(respBody) == 0 {
+			return nil
+		}
+
+		// Tenta fazer unmarshal
 		if err := json.Unmarshal(respBody, response); err != nil {
+			// Log do corpo da resposta para debugging
+			c.logger.RegistrarChamada(logger.EntradaLog{
+				Servico:  "bling",
+				Operacao: "ErroDecodificacaoResposta",
+				Erro:     fmt.Sprintf("Erro ao decodificar resposta: %v. Body: %s", err, string(respBody)),
+				Resposta: map[string]interface{}{
+					"status_code": resp.StatusCode,
+					"raw_body":    string(respBody),
+				},
+			})
 			return fmt.Errorf("erro ao decodificar resposta: %w", err)
 		}
 	}
