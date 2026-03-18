@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"math"
+	"strings"
 
 	"prosync/internal/comum/logger"
 	"prosync/internal/comum/models"
@@ -35,6 +36,14 @@ func NovoProcessadorTrovata(
 
 // SincronizarProduto sincroniza produto com Trovata (criar produto + atualizar estoque)
 func (p *ProcessadorTrovata) SincronizarProduto(produto *models.Product, categoria *models.Category, sku string, idProdutoTiny string) error {
+	// Verifica se o produto deve ser ignorado por ter palavra proibida no nome
+	if devePularProduto(produto.Name) {
+		p.logger.RegistrarInfo("trovata",
+			fmt.Sprintf("Produto ID %d (SKU: %s) ignorado - nome contém palavra proibida: %s", produto.ID, sku, produto.Name),
+		)
+		return nil
+	}
+
 	p.logger.RegistrarInfo("trovata",
 		fmt.Sprintf("Iniciando sincronização do produto ID %d (SKU: %s, Tiny ID: %s) com Trovata", produto.ID, sku, idProdutoTiny),
 	)
@@ -198,6 +207,30 @@ func obterString(ns sql.NullString) string {
 	return ""
 }
 
+// devePularProduto verifica se o produto deve ser ignorado baseado em palavras proibidas no nome
+func devePularProduto(nomeProduto string) bool {
+	palavrasProibidas := []string{
+		"cancelado",
+		"danificada",
+		"teste",
+		"danificado",
+		"queima",
+		"estoque",
+		"correcao",
+		"correção",
+		"defeito",
+		"defeituoso",
+	}
+
+	nomeLower := strings.ToLower(nomeProduto)
+	for _, palavra := range palavrasProibidas {
+		if strings.Contains(nomeLower, palavra) {
+			return true
+		}
+	}
+	return false
+}
+
 // obterSituacao retorna "A" (ativo) ou "I" (inativo)
 func obterSituacao(isEnabled bool) string {
 	if isEnabled {
@@ -221,8 +254,25 @@ func (p *ProcessadorTrovata) SincronizarProdutos(produtos []ProdutoParaSincroniz
 		return nil
 	}
 
+	// Filtra produtos que devem ser ignorados
+	produtosFiltrados := make([]ProdutoParaSincronizar, 0, len(produtos))
+	for _, prod := range produtos {
+		if devePularProduto(prod.Produto.Name) {
+			p.logger.RegistrarInfo("trovata",
+				fmt.Sprintf("Produto ID %d (SKU: %s) ignorado - nome contém palavra proibida: %s", prod.Produto.ID, prod.SKU, prod.Produto.Name),
+			)
+			continue
+		}
+		produtosFiltrados = append(produtosFiltrados, prod)
+	}
+
+	if len(produtosFiltrados) == 0 {
+		p.logger.RegistrarInfo("trovata", "Nenhum produto válido para sincronizar com Trovata após filtro")
+		return nil
+	}
+
 	p.logger.RegistrarInfo("trovata",
-		fmt.Sprintf("Iniciando sincronização em lote de %d produtos com Trovata", len(produtos)),
+		fmt.Sprintf("Iniciando sincronização em lote de %d produtos com Trovata (%d ignorados)", len(produtosFiltrados), len(produtos)-len(produtosFiltrados)),
 	)
 
 	// Busca partner para cálculo de preço
@@ -236,8 +286,8 @@ func (p *ProcessadorTrovata) SincronizarProdutos(produtos []ProdutoParaSincroniz
 	}
 
 	// Prepara todos os produtos
-	produtoRequests := make([]*dto.ProdutoTrovataRequest, 0, len(produtos))
-	for _, prod := range produtos {
+	produtoRequests := make([]*dto.ProdutoTrovataRequest, 0, len(produtosFiltrados))
+	for _, prod := range produtosFiltrados {
 		request := p.prepararProdutoRequest(prod.Produto, prod.Categoria, partner)
 		produtoRequests = append(produtoRequests, request)
 	}
@@ -248,7 +298,7 @@ func (p *ProcessadorTrovata) SincronizarProdutos(produtos []ProdutoParaSincroniz
 	}
 
 	// Atualizar estoque de todos os produtos
-	for _, prod := range produtos {
+	for _, prod := range produtosFiltrados {
 		if err := p.atualizarEstoque(prod.Produto, prod.SKU, prod.IdProdutoTiny); err != nil {
 			p.logger.RegistrarErro("trovata",
 				fmt.Sprintf("Erro ao atualizar estoque do produto %d (SKU: %s)", prod.Produto.ID, prod.SKU),
@@ -259,7 +309,7 @@ func (p *ProcessadorTrovata) SincronizarProdutos(produtos []ProdutoParaSincroniz
 	}
 
 	p.logger.RegistrarInfo("trovata",
-		fmt.Sprintf("%d produtos sincronizados com sucesso na Trovata", len(produtos)),
+		fmt.Sprintf("%d produtos sincronizados com sucesso na Trovata", len(produtosFiltrados)),
 	)
 
 	return nil
