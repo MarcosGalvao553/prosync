@@ -162,7 +162,7 @@ func (p *ProcessadorTiny) ProcessarExcecoesListaPreco() ([]ProdutoCompleto, erro
 			// Fórmula: saldo - saldo_reservado - decrease_stock (3)
 			saldo := estoque.SaldoDisponivel
 			saldoReservado := estoque.SaldoReservado
-			estoqueCalculado := saldo - saldoReservado - DecreaseStock
+			estoqueCalculado := saldo - DecreaseStock
 
 			// Se negativo, ajusta para 0
 			if estoqueCalculado < 0 {
@@ -495,7 +495,7 @@ func (p *ProcessadorTiny) processarProduto(idProduto string, excecao dto.Produto
 	// Calcula estoque disponível para Nerdrop
 	saldo := estoque.SaldoDisponivel
 	saldoReservado := estoque.SaldoReservado
-	estoqueCalculado := saldo - saldoReservado - DecreaseStock
+	estoqueCalculado := saldo - DecreaseStock
 
 	if estoqueCalculado < 0 {
 		estoqueCalculado = 0
@@ -516,7 +516,7 @@ func (p *ProcessadorTiny) processarProduto(idProduto string, excecao dto.Produto
 			"saldo_reservado":   saldoReservado,
 			"decrease_stock":    DecreaseStock,
 			"estoque_calculado": estoqueCalculado,
-			"formula":           "saldo - saldo_reservado - decrease_stock",
+			"formula":           "saldo - decrease_stock",
 		},
 	})
 

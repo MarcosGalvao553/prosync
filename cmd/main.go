@@ -100,7 +100,7 @@ func main() {
 			time.Now().Format("2006-01-02 15:04:05"),
 			proximaExecucao.Format("2006-01-02 15:04:05"))
 
-		time.Sleep(time.Duration(cfg.IntervaloExecucaoMinutos) * time.Minute)
+		time.Sleep(time.Duration(480) * time.Minute)
 	}
 }
 

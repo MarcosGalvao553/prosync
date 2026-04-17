@@ -72,6 +72,6 @@ func (p *ProdutoEstoque) ParaEstoqueTiny() EstoqueTiny {
 		Codigo:          p.Codigo,
 		Saldo:           p.Saldo,
 		SaldoReservado:  p.SaldoReservado,
-		SaldoDisponivel: p.Saldo - p.SaldoReservado,
+		SaldoDisponivel: p.Saldo,
 	}
 }
