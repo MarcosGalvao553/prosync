@@ -117,8 +117,9 @@ func (p *ProcessadorTiny) ProcessarExcecoesListaPreco() ([]ProdutoCompleto, erro
 
 		// Validação: Se produto não for FUNKO ou BLOKEES, não criar
 		nomeUpper := strings.ToUpper(produto.Nome)
+		marcaUpper := strings.ToUpper(produto.Marca)
 		isFunko := strings.Contains(nomeUpper, "FUNKO")
-		isBlokees := strings.Contains(nomeUpper, "BLOKEES")
+		isBlokees := strings.Contains(nomeUpper, "BLOKEES") || marcaUpper == "BLOKEES"
 
 		if !isFunko && !isBlokees {
 			p.logger.RegistrarInfo("processador",
@@ -450,8 +451,9 @@ func (p *ProcessadorTiny) processarProduto(idProduto string, excecao dto.Produto
 
 	// Validação: Se produto não for FUNKO ou BLOKEES, não criar
 	nomeUpper := strings.ToUpper(produto.Nome)
+	marcaUpper := strings.ToUpper(produto.Marca)
 	isFunko := strings.Contains(nomeUpper, "FUNKO")
-	isBlokees := strings.Contains(nomeUpper, "BLOKEES")
+	isBlokees := strings.Contains(nomeUpper, "BLOKEES") || marcaUpper == "BLOKEES"
 
 	if !isFunko && !isBlokees {
 		p.logger.RegistrarInfo("processador",
