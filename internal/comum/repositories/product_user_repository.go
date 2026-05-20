@@ -23,9 +23,8 @@ func (r *ProductUserRepository) ListarPorProductID(productID int) ([]models.Prod
 		SELECT id, user_id, product_id, tiny_product_id, bling_product_id, 
 		       price, created_at, updated_at
 		FROM product_users 
-		JOIN subscriptions ON product_users.user_id = subscriptions.user_id
 		WHERE product_id = ?
-		AND subscriptions.active = 1
+		AND user_id in(739,34,759)
 	`
 
 	rows, err := r.db.Query(query, productID)
