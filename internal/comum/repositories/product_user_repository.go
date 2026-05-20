@@ -19,16 +19,8 @@ func NovoProductUserRepository(db *sql.DB) *ProductUserRepository {
 
 // ListarPorProductID retorna todos os usuários vinculados a um produto
 func (r *ProductUserRepository) ListarPorProductID(productID int) ([]models.ProductUser, error) {
-	query := `
-		SELECT product_users.id, product_users.user_id, product_users.product_id, 
-		       product_users.tiny_product_id, product_users.bling_product_id, 
-		       product_users.price, product_users.created_at, product_users.updated_at
-		FROM product_users 
-		JOIN subscriptions ON subscriptions.user_id = product_users.user_id
-		WHERE product_users.product_id = ?
-		AND subscriptions.active = 1
-	`
-
+	query := `SELECT product_users.id, product_users.user_id, product_users.product_id, product_users.tiny_product_id, product_users.bling_product_id, product_users.price, product_users.created_at, product_users.updated_at FROM product_users INNER JOIN subscriptions ON subscriptions.user_id = product_users.user_id WHERE product_users.product_id = ? AND subscriptions.active = 1`
+	fmt.Printf("Executando query: %s com productID: %d\n", query, productID) // Log da query
 	rows, err := r.db.Query(query, productID)
 	if err != nil {
 		return nil, fmt.Errorf("erro ao listar product_users: %w", err)
