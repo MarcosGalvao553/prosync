@@ -82,7 +82,7 @@ type DadosProduto struct {
 	QtdVolumes            string   `json:"qtd_volumes"`
 	Categoria             string   `json:"categoria"`
 	Anexos                []Anexo  `json:"anexos,omitempty"`
-	ImagensExternas       []string `json:"imagens_externas,omitempty"`
+	ImagensExternas       string   `json:"-"` // Ignorado - formato inconsistente na API do Tiny
 	ClasseProduto         string   `json:"classe_produto"`
 	SEOTitle              string   `json:"seo_title"`
 	SEOKeywords           string   `json:"seo_keywords"`
