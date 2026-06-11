@@ -12,7 +12,7 @@ services:
     env_file:
       - .env
     environment:
-      - DB_HOST=${DB_HOST:-164.92.67.204}
+      - DB_HOST=${DB_HOST:-159.89.50.16}
       - DB_PORT=${DB_PORT:-3307}
       - DB_DATABASE=${DB_DATABASE:-nerdrop}
       - DB_USERNAME=${DB_USERNAME:-root}
