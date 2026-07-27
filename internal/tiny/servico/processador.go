@@ -115,19 +115,27 @@ func (p *ProcessadorTiny) ProcessarExcecoesListaPreco() ([]ProdutoCompleto, erro
 			continue
 		}
 
-		// Validação: Se produto não for FUNKO ou BLOKEES, não criar
+		// Validação: Se produto não for FUNKO ou BLOKEES, só processa se já existir na base
 		nomeUpper := strings.ToUpper(produto.Nome)
 		marcaUpper := strings.ToUpper(produto.Marca)
 		isFunko := strings.Contains(nomeUpper, "FUNKO")
 		isBlokees := strings.Contains(nomeUpper, "BLOKEES") || marcaUpper == "BLOKEES"
 
 		if !isFunko && !isBlokees {
+			produtoExistente, _ := p.productRepo.BuscarPorSKU(produto.Codigo)
+			if produtoExistente == nil {
+				p.logger.RegistrarInfo("processador",
+					fmt.Sprintf("Produto %s - '%s' não é FUNKO/BLOKEES e não existe na base, não será processado",
+						idProduto, produto.Nome,
+					),
+				)
+				continue
+			}
 			p.logger.RegistrarInfo("processador",
-				fmt.Sprintf("Produto %s - '%s' não é FUNKO/BLOKEES, não será processado",
+				fmt.Sprintf("Produto %s - '%s' não é FUNKO/BLOKEES mas já existe na base, será atualizado",
 					idProduto, produto.Nome,
 				),
 			)
-			continue
 		}
 
 		produtoCompleto.Produto = produto
@@ -449,20 +457,7 @@ func (p *ProcessadorTiny) processarProduto(idProduto string, excecao dto.Produto
 		return fmt.Errorf("produto inativo (situação: %s)", produto.Situacao)
 	}
 
-	// Validação: Se produto não for FUNKO ou BLOKEES, não criar
-	nomeUpper := strings.ToUpper(produto.Nome)
-	marcaUpper := strings.ToUpper(produto.Marca)
-	isFunko := strings.Contains(nomeUpper, "FUNKO")
-	isBlokees := strings.Contains(nomeUpper, "BLOKEES") || marcaUpper == "BLOKEES"
-
-	if !isFunko && !isBlokees {
-		p.logger.RegistrarInfo("processador",
-			fmt.Sprintf("Produto %s - '%s' não é FUNKO/BLOKEES, não será processado",
-				idProduto, produto.Nome,
-			),
-		)
-		return fmt.Errorf("produto não é FUNKO/BLOKEES")
-	}
+	// Validação de marca (FUNKO/BLOKEES) ignorada para produtos processados manualmente via webhook
 
 	produtoCompleto.Produto = produto
 
