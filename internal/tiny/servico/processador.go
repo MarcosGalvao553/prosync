@@ -29,34 +29,36 @@ type ProdutoCompleto struct {
 
 // ProcessadorTiny orquestra o processamento dos dados do Tiny
 type ProcessadorTiny struct {
-	client               *entidade.TinyClient
-	logger               *logger.Logger
-	categoryRepo         *repositories.CategoryRepository
-	productRepo          *repositories.ProductRepository
-	productPromotionRepo *repositories.ProductPromotionRepository
-	productImageRepo     *repositories.ProductImageRepository
-	processadorBling     *blingServico.ProcessadorBling     // Opcional
-	processadorTrovata   *trovataServico.ProcessadorTrovata // Opcional
+	client                       *entidade.TinyClient
+	logger                       *logger.Logger
+	categoryRepo                 *repositories.CategoryRepository
+	productRepo                  *repositories.ProductRepository
+	productPromotionRepo         *repositories.ProductPromotionRepository
+	productImageRepo             *repositories.ProductImageRepository
+	categoryMaintenancePriceRepo *repositories.CategoryMaintenancePriceRepository
+	processadorBling             *blingServico.ProcessadorBling     // Opcional
+	processadorTrovata           *trovataServico.ProcessadorTrovata // Opcional
 }
 
 const (
 	// DecreaseStock é a quantidade a ser subtraída do estoque disponível
 	DecreaseStock = 3
-	// MaintenancePrice é o valor fixo de manutenção adicionado ao preço
-	MaintenancePrice = 3.50
+	// DefaultMaintenancePrice é o fallback usado quando o banco não é acessível
+	DefaultMaintenancePrice = 3.50
 )
 
 // NovoProcessadorTiny cria uma nova instância do processador
-func NovoProcessadorTiny(client *entidade.TinyClient, logger *logger.Logger, categoryRepo *repositories.CategoryRepository, productRepo *repositories.ProductRepository, productPromotionRepo *repositories.ProductPromotionRepository, productImageRepo *repositories.ProductImageRepository, processadorBling *blingServico.ProcessadorBling, processadorTrovata *trovataServico.ProcessadorTrovata) *ProcessadorTiny {
+func NovoProcessadorTiny(client *entidade.TinyClient, logger *logger.Logger, categoryRepo *repositories.CategoryRepository, productRepo *repositories.ProductRepository, productPromotionRepo *repositories.ProductPromotionRepository, productImageRepo *repositories.ProductImageRepository, categoryMaintenancePriceRepo *repositories.CategoryMaintenancePriceRepository, processadorBling *blingServico.ProcessadorBling, processadorTrovata *trovataServico.ProcessadorTrovata) *ProcessadorTiny {
 	return &ProcessadorTiny{
-		client:               client,
-		logger:               logger,
-		productRepo:          productRepo,
-		categoryRepo:         categoryRepo,
-		productPromotionRepo: productPromotionRepo,
-		productImageRepo:     productImageRepo,
-		processadorBling:     processadorBling,
-		processadorTrovata:   processadorTrovata,
+		client:                       client,
+		logger:                       logger,
+		productRepo:                  productRepo,
+		categoryRepo:                 categoryRepo,
+		productPromotionRepo:         productPromotionRepo,
+		productImageRepo:             productImageRepo,
+		categoryMaintenancePriceRepo: categoryMaintenancePriceRepo,
+		processadorBling:             processadorBling,
+		processadorTrovata:           processadorTrovata,
 	}
 }
 
@@ -232,8 +234,20 @@ func (p *ProcessadorTiny) ProcessarExcecoesListaPreco() ([]ProdutoCompleto, erro
 
 			// Se não tiver promoção ativa, calcula o novo preço
 			if !temPromocaoAtiva {
-				// Usa o preço da exceção de lista de preços + valor fixo de manutenção (3.50)
-				precoFinal = excecao.Preco + MaintenancePrice
+				categoryID := 0
+				if produtoCompleto.Categoria != nil {
+					categoryID = produtoCompleto.Categoria.ID
+				}
+				maintenancePrice, errMP := p.categoryMaintenancePriceRepo.BuscarPrecoEfetivo(categoryID)
+				if errMP != nil {
+					p.logger.RegistrarErro("processador",
+						fmt.Sprintf("Erro ao buscar maintenance price para categoria %d, usando padrão", categoryID),
+						errMP,
+					)
+					maintenancePrice = DefaultMaintenancePrice
+				}
+
+				precoFinal = excecao.Preco + maintenancePrice
 
 				// Registra log do cálculo de preço
 				p.logger.RegistrarChamada(logger.EntradaLog{
@@ -245,15 +259,16 @@ func (p *ProcessadorTiny) ProcessarExcecoesListaPreco() ([]ProdutoCompleto, erro
 						"id_produto_tiny":  idProduto,
 						"sku":              produto.Codigo,
 						"preco_tiny":       excecao.Preco,
-						"valor_manutencao": MaintenancePrice,
+						"valor_manutencao": maintenancePrice,
+						"category_id":      categoryID,
 						"preco_calculado":  precoFinal,
 						"formula":          "preco_tiny + valor_manutencao",
 					},
 				})
 
 				p.logger.RegistrarInfo("processador",
-					fmt.Sprintf("Produto %s - Preço Tiny: %.2f + Manutenção: %.2f = Total: %.2f",
-						idProduto, excecao.Preco, MaintenancePrice, precoFinal),
+					fmt.Sprintf("Produto %s - Preço Tiny: %.2f + Manutenção: %.2f (cat %d) = Total: %.2f",
+						idProduto, excecao.Preco, maintenancePrice, categoryID, precoFinal),
 				)
 			} else {
 				p.logger.RegistrarInfo("processador",
@@ -552,7 +567,20 @@ func (p *ProcessadorTiny) processarProduto(idProduto string, excecao dto.Produto
 
 	// Se não tiver promoção ativa, calcula o novo preço
 	if !temPromocaoAtiva {
-		precoFinal = excecao.Preco + MaintenancePrice
+		categoryID := 0
+		if produtoCompleto.Categoria != nil {
+			categoryID = produtoCompleto.Categoria.ID
+		}
+		maintenancePrice, errMP := p.categoryMaintenancePriceRepo.BuscarPrecoEfetivo(categoryID)
+		if errMP != nil {
+			p.logger.RegistrarErro("processador",
+				fmt.Sprintf("Erro ao buscar maintenance price para categoria %d, usando padrão", categoryID),
+				errMP,
+			)
+			maintenancePrice = DefaultMaintenancePrice
+		}
+
+		precoFinal = excecao.Preco + maintenancePrice
 
 		p.logger.RegistrarChamada(logger.EntradaLog{
 			Servico:       "nerdrop",
@@ -563,15 +591,16 @@ func (p *ProcessadorTiny) processarProduto(idProduto string, excecao dto.Produto
 				"id_produto_tiny":  idProduto,
 				"sku":              produto.Codigo,
 				"preco_tiny":       excecao.Preco,
-				"valor_manutencao": MaintenancePrice,
+				"valor_manutencao": maintenancePrice,
+				"category_id":      categoryID,
 				"preco_calculado":  precoFinal,
 				"formula":          "preco_tiny + valor_manutencao",
 			},
 		})
 
 		p.logger.RegistrarInfo("processador",
-			fmt.Sprintf("Produto %s - Preço Tiny: %.2f + Manutenção: %.2f = Total: %.2f",
-				idProduto, excecao.Preco, MaintenancePrice, precoFinal),
+			fmt.Sprintf("Produto %s - Preço Tiny: %.2f + Manutenção: %.2f (cat %d) = Total: %.2f",
+				idProduto, excecao.Preco, maintenancePrice, categoryID, precoFinal),
 		)
 	} else {
 		p.logger.RegistrarInfo("processador",
