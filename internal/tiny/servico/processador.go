@@ -29,15 +29,15 @@ type ProdutoCompleto struct {
 
 // ProcessadorTiny orquestra o processamento dos dados do Tiny
 type ProcessadorTiny struct {
-	client                       *entidade.TinyClient
-	logger                       *logger.Logger
-	categoryRepo                 *repositories.CategoryRepository
-	productRepo                  *repositories.ProductRepository
-	productPromotionRepo         *repositories.ProductPromotionRepository
-	productImageRepo             *repositories.ProductImageRepository
-	categoryMaintenancePriceRepo *repositories.CategoryMaintenancePriceRepository
-	processadorBling             *blingServico.ProcessadorBling     // Opcional
-	processadorTrovata           *trovataServico.ProcessadorTrovata // Opcional
+	client                      *entidade.TinyClient
+	logger                      *logger.Logger
+	categoryRepo                *repositories.CategoryRepository
+	productRepo                 *repositories.ProductRepository
+	productPromotionRepo        *repositories.ProductPromotionRepository
+	productImageRepo            *repositories.ProductImageRepository
+	productMaintenancePriceRepo *repositories.ProductMaintenancePriceRepository
+	processadorBling            *blingServico.ProcessadorBling     // Opcional
+	processadorTrovata          *trovataServico.ProcessadorTrovata // Opcional
 }
 
 const (
@@ -48,17 +48,17 @@ const (
 )
 
 // NovoProcessadorTiny cria uma nova instância do processador
-func NovoProcessadorTiny(client *entidade.TinyClient, logger *logger.Logger, categoryRepo *repositories.CategoryRepository, productRepo *repositories.ProductRepository, productPromotionRepo *repositories.ProductPromotionRepository, productImageRepo *repositories.ProductImageRepository, categoryMaintenancePriceRepo *repositories.CategoryMaintenancePriceRepository, processadorBling *blingServico.ProcessadorBling, processadorTrovata *trovataServico.ProcessadorTrovata) *ProcessadorTiny {
+func NovoProcessadorTiny(client *entidade.TinyClient, logger *logger.Logger, categoryRepo *repositories.CategoryRepository, productRepo *repositories.ProductRepository, productPromotionRepo *repositories.ProductPromotionRepository, productImageRepo *repositories.ProductImageRepository, productMaintenancePriceRepo *repositories.ProductMaintenancePriceRepository, processadorBling *blingServico.ProcessadorBling, processadorTrovata *trovataServico.ProcessadorTrovata) *ProcessadorTiny {
 	return &ProcessadorTiny{
-		client:                       client,
-		logger:                       logger,
-		productRepo:                  productRepo,
-		categoryRepo:                 categoryRepo,
-		productPromotionRepo:         productPromotionRepo,
-		productImageRepo:             productImageRepo,
-		categoryMaintenancePriceRepo: categoryMaintenancePriceRepo,
-		processadorBling:             processadorBling,
-		processadorTrovata:           processadorTrovata,
+		client:                      client,
+		logger:                      logger,
+		productRepo:                 productRepo,
+		categoryRepo:                categoryRepo,
+		productPromotionRepo:        productPromotionRepo,
+		productImageRepo:            productImageRepo,
+		productMaintenancePriceRepo: productMaintenancePriceRepo,
+		processadorBling:            processadorBling,
+		processadorTrovata:          processadorTrovata,
 	}
 }
 
@@ -234,14 +234,18 @@ func (p *ProcessadorTiny) ProcessarExcecoesListaPreco() ([]ProdutoCompleto, erro
 
 			// Se não tiver promoção ativa, calcula o novo preço
 			if !temPromocaoAtiva {
+				productID := 0
+				if produtoCompleto.ProdutoNerdrop != nil {
+					productID = produtoCompleto.ProdutoNerdrop.ID
+				}
 				categoryID := 0
 				if produtoCompleto.Categoria != nil {
 					categoryID = produtoCompleto.Categoria.ID
 				}
-				maintenancePrice, errMP := p.categoryMaintenancePriceRepo.BuscarPrecoEfetivo(categoryID)
+				maintenancePrice, errMP := p.productMaintenancePriceRepo.BuscarPrecoEfetivo(productID, categoryID)
 				if errMP != nil {
 					p.logger.RegistrarErro("processador",
-						fmt.Sprintf("Erro ao buscar maintenance price para categoria %d, usando padrão", categoryID),
+						fmt.Sprintf("Erro ao buscar maintenance price para produto %d / categoria %d, usando padrão", productID, categoryID),
 						errMP,
 					)
 					maintenancePrice = DefaultMaintenancePrice
@@ -567,14 +571,18 @@ func (p *ProcessadorTiny) processarProduto(idProduto string, excecao dto.Produto
 
 	// Se não tiver promoção ativa, calcula o novo preço
 	if !temPromocaoAtiva {
+		productID := 0
+		if produtoCompleto.ProdutoNerdrop != nil {
+			productID = produtoCompleto.ProdutoNerdrop.ID
+		}
 		categoryID := 0
 		if produtoCompleto.Categoria != nil {
 			categoryID = produtoCompleto.Categoria.ID
 		}
-		maintenancePrice, errMP := p.categoryMaintenancePriceRepo.BuscarPrecoEfetivo(categoryID)
+		maintenancePrice, errMP := p.productMaintenancePriceRepo.BuscarPrecoEfetivo(productID, categoryID)
 		if errMP != nil {
 			p.logger.RegistrarErro("processador",
-				fmt.Sprintf("Erro ao buscar maintenance price para categoria %d, usando padrão", categoryID),
+				fmt.Sprintf("Erro ao buscar maintenance price para produto %d / categoria %d, usando padrão", productID, categoryID),
 				errMP,
 			)
 			maintenancePrice = DefaultMaintenancePrice

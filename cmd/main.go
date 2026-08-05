@@ -53,6 +53,7 @@ func main() {
 	blingConfigRepo := repositories.NovoBlingConfigurationRepository(db)
 	productUserRepo := repositories.NovoProductUserRepository(db)
 	categoryMaintenancePriceRepo := repositories.NovoCategoryMaintenancePriceRepository(db)
+	productMaintenancePriceRepo := repositories.NovoProductMaintenancePriceRepository(db, categoryMaintenancePriceRepo)
 	fmt.Println("Repositórios criados")
 
 	// Cria o processador Bling
@@ -71,7 +72,7 @@ func main() {
 	)
 
 	// Cria o processador
-	processador := servico.NovoProcessadorTiny(tinyClient, logger, categoryRepo, productRepo, productPromotionRepo, productImageRepo, categoryMaintenancePriceRepo, processadorBling, processadorTrovata)
+	processador := servico.NovoProcessadorTiny(tinyClient, logger, categoryRepo, productRepo, productPromotionRepo, productImageRepo, productMaintenancePriceRepo, processadorBling, processadorTrovata)
 	fmt.Println("Processador criado")
 
 	// Inicia servidor web em goroutine

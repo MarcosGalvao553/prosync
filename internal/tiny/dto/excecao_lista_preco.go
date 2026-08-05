@@ -1,44 +1,5 @@
 package dto
 
-import (
-	"encoding/json"
-	"fmt"
-	"strconv"
-)
-
-// FlexInt é um tipo que aceita int ou string no JSON e converte para int
-type FlexInt int
-
-// UnmarshalJSON implementa json.Unmarshaler para FlexInt
-func (fi *FlexInt) UnmarshalJSON(data []byte) error {
-	// Tenta fazer unmarshal como int primeiro
-	var i int
-	if err := json.Unmarshal(data, &i); err == nil {
-		*fi = FlexInt(i)
-		return nil
-	}
-
-	// Se falhar, tenta como string
-	var s string
-	if err := json.Unmarshal(data, &s); err != nil {
-		return fmt.Errorf("FlexInt deve ser int ou string: %w", err)
-	}
-
-	// Converte string para int
-	i, err := strconv.Atoi(s)
-	if err != nil {
-		return fmt.Errorf("erro ao converter string para int: %w", err)
-	}
-
-	*fi = FlexInt(i)
-	return nil
-}
-
-// Int retorna o valor como int
-func (fi FlexInt) Int() int {
-	return int(fi)
-}
-
 // ExcecaoListaPrecoRequest representa os dados de requisição para buscar exceções de lista de preços
 type ExcecaoListaPrecoRequest struct {
 	Token        string `json:"token"`
