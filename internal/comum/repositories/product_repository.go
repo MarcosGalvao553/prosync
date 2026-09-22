@@ -148,8 +148,19 @@ func (r *ProductRepository) ListarTodos(limite int) ([]models.Product, error) {
 
 // AtualizarEstoque atualiza o estoque de um produto
 func (r *ProductRepository) AtualizarEstoque(id int, estoque int) error {
-	query := "UPDATE products SET stock = ? WHERE id = ?"
-	_, err := r.db.Exec(query, estoque, id)
+	var estoqueAtual sql.NullInt64
+	if err := r.db.QueryRow("SELECT stock FROM products WHERE id = ?", id).Scan(&estoqueAtual); err != nil {
+		return fmt.Errorf("erro ao buscar estoque atual: %w", err)
+	}
+
+	estoqueEraZero := !estoqueAtual.Valid || estoqueAtual.Int64 == 0
+
+	var err error
+	if estoqueEraZero && estoque > 0 {
+		_, err = r.db.Exec("UPDATE products SET stock = ?, isEnabled = 0 WHERE id = ?", estoque, id)
+	} else {
+		_, err = r.db.Exec("UPDATE products SET stock = ? WHERE id = ?", estoque, id)
+	}
 	if err != nil {
 		return fmt.Errorf("erro ao atualizar estoque: %w", err)
 	}
@@ -232,6 +243,13 @@ func (r *ProductRepository) CriarOuAtualizar(sku string, p *models.Product) (*mo
 		p.SaleCount = produtoExistente.SaleCount
 		p.ReviewCount = produtoExistente.ReviewCount
 		p.CreatedAt = produtoExistente.CreatedAt
+
+		// Desativa produto quando estoque sai de zero para positivo
+		estoqueEraZero := !produtoExistente.Stock.Valid || produtoExistente.Stock.Int64 == 0
+		novoEstoquePositivo := p.Stock.Valid && p.Stock.Int64 > 0
+		if estoqueEraZero && novoEstoquePositivo {
+			p.IsEnabled = false
+		}
 	} else {
 		// Produto não existe, será criado (ID = 0)
 		p.ID = 0
