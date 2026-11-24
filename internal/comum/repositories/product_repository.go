@@ -253,6 +253,11 @@ func (r *ProductRepository) CriarOuAtualizar(sku string, p *models.Product) (*mo
 	} else {
 		// Produto não existe, será criado (ID = 0)
 		p.ID = 0
+
+		// Produto novo sem estoque entra desativado
+		if !p.Stock.Valid || p.Stock.Int64 <= 0 {
+			p.IsEnabled = false
+		}
 	}
 
 	// Salva (insert ou update)
